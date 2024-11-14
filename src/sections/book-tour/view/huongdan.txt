@@ -1,0 +1,116 @@
+1. File route: fontend\admin\src\routes\sections.tsx
+2. File view chính: fontend\admin\src\pages
+3. File view thành phần:
+    1. fontend\admin\src\sections\account
+    2. fontend\admin\src\sections\book-tour
+    3. fontend\admin\src\sections\tour
+    4. fontend\admin\src\sections\passenger
+    5. fontend\admin\src\sections\user
+
+
+VÍ dụ Flow đi của view:
+    1.Từ menu ngang: Click vào Quản lý đặt tour
+    File: fontend\admin\src\layouts\config-nav-dashboard.tsx
+    {
+        title: 'Quản lý Đặt Tour',
+        path: '/booking-tour',
+        icon: icon('ic-book-tour'),
+    },
+
+    2. Theo path '/booking-tour' check trong route sẽ import component BookTourPage
+    { path: 'booking-tour', element: <BookTourPage /> },
+
+
+    => export const BookTourPage = lazy(() => import('src/pages/book-tour'));
+
+    3. Gọi tới file view fontend\admin\src\pages\book-tour.tsx:
+
+       Ở file view này import fontend\admin\src\sections\book-tour\view\book-tour-view.tsx:
+          <BookTourView />
+
+
+
+Các update data từ API:
+    Bước 1: Cài đặt Axios (source đã cài rồi)
+        Để lấy dữ liệu từ API, bạn có thể sử dụng Axios, một thư viện phổ biến cho việc thực hiện các yêu cầu HTTP.
+
+        Cài đặt Axios: Nếu bạn chưa cài đặt Axios, mở terminal và chạy lệnh sau:
+            npm install axios
+
+    Bước 2: Tạo API để lấy dữ liệu
+        Giả sử bạn đã có một API RESTful để lấy danh sách người dùng. Đường dẫn API của bạn có thể giống như sau:
+
+
+        EX: lấy thông tin user GET /api/users
+    Đảm bảo rằng API này trả về dữ liệu theo định dạng mà bạn mong muốn, ví dụ:
+        json
+
+        [
+            {
+                "id": "1",
+                "name": "John Doe",
+                "company": "Company A",
+                "role": "Admin",
+                "isVerified": true,
+                "status": "Active"
+            },
+            {
+                "id": "2",
+                "name": "Jane Smith",
+                "company": "Company B",
+                "role": "User",
+                "isVerified": false,
+                "status": "Inactive"
+            }
+        ]
+
+    Bước 3: Cập nhật mã UserView
+        Mở file UserView.tsx và thực hiện các bước sau:
+
+        Import Axios: Thêm dòng import Axios vào đầu file:
+
+        import axios from 'axios';
+        Thêm State để lưu dữ liệu người dùng: Thay thế _users bằng một state mới để lưu dữ liệu từ API:
+
+        const [users, setUsers] = useState<BookTourProps[]>([]);
+        Sử dụng useEffect để lấy dữ liệu: Sử dụng hook useEffect để gọi API khi component được mount:
+
+        useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+            const response = await axios.get('/api/users'); // Đường dẫn đến API của bạn
+            setUsers(response.data); // Lưu dữ liệu vào state
+            } catch (error) {
+            console.error('Error fetching users:', error); // Xử lý lỗi
+            }
+        };
+
+        fetchUsers(); // Gọi hàm fetchUsers
+        }, []);
+        Thay thế dữ liệu trong hàm applyFilter: Sử dụng users thay vì _users trong hàm applyFilter:
+
+        const dataFiltered: BookTourProps[] = applyFilter({
+        inputData: users, // Thay đổi từ _users thành users
+        comparator: getComparator(table.order, table.orderBy),
+        filterName,
+        });
+
+
+    Bước 4: Kiểm tra và chạy ứng dụng
+        Khởi động ứng dụng: Chạy ứng dụng của bạn với lệnh sau:
+
+
+        npm start
+        Kiểm tra dữ liệu: Mở trình duyệt và kiểm tra xem bảng có hiển thị dữ liệu từ API hay không. Nếu có lỗi, kiểm tra console để xem thông báo lỗi.
+    Bước 5: Xử lý tình huống không có dữ liệu
+        Bạn có thể muốn hiển thị một thông báo nếu không có người dùng nào được tìm thấy. Mã hiện tại đã có một phần xử lý trường hợp này:
+
+
+        {notFound && <TableNoData searchQuery={filterName} />}
+        Nếu không có dữ liệu lọc và có tên lọc, TableNoData sẽ được hiển thị.
+
+Tóm tắt
+1. Cài đặt Axios để thực hiện các yêu cầu HTTP.
+2. Tạo API để lấy dữ liệu người dùng.
+3. Cập nhật mã trong BookTourView để sử dụng dữ liệu từ API thay vì dữ liệu mock.
+4. Chạy ứng dụng và kiểm tra xem dữ liệu có được hiển thị đúng không.

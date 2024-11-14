@@ -1,4 +1,3 @@
-import { Label } from 'src/components/label';
 import { SvgColor } from 'src/components/svg-color';
 
 // ----------------------------------------------------------------------
@@ -9,38 +8,40 @@ const icon = (name: string) => (
 
 export const navData = [
   {
-    title: 'Dashboard',
+    title: 'Dashboard Tổng Quan',
     path: '/',
     icon: icon('ic-analytics'),
   },
   {
-    title: 'User',
+    title: 'Quản lý Tour',
+    path: '/tour',
+    icon: icon('ic-blog'),
+    
+  },
+  {
+    title: 'Quản lý Đặt Tour',
+    path: '/booking-tour',
+    icon: icon('ic-book-tour'),
+  },
+  {
+    title: 'Quản lý khách hàng',
     path: '/user',
     icon: icon('ic-user'),
+   
   },
   {
-    title: 'Product',
-    path: '/products',
-    icon: icon('ic-cart'),
-    info: (
-      <Label color="error" variant="inverted">
-        +3
-      </Label>
-    ),
+    title: 'Quản lý hành khách',
+    path: '/passenger',
+    icon: icon('ic-passenger'),
   },
   {
-    title: 'Blog',
-    path: '/blog',
-    icon: icon('ic-blog'),
+    title: 'Quản lý tài khoản',
+    path: '/account',
+    icon: icon('ic-account'),
   },
   {
-    title: 'Sign in',
-    path: '/sign-in',
-    icon: icon('ic-lock'),
-  },
-  {
-    title: 'Not found',
-    path: '/404',
-    icon: icon('ic-disabled'),
+    title: 'Cài Đặt Hệ Thống',
+    path: '/system',
+    icon: icon('ic-system'),
   },
 ];
