@@ -28,6 +28,7 @@ export const _users = [...Array(24)].map((_, index) => ({
   isVerified: _boolean(index),
   avatarUrl: `/assets/images/avatar/avatar-${index + 1}.webp`,
   status: index % 4 ? 'active' : 'banned',
+  password: 'abcdef',
   role:
     [
       'Leader',
@@ -40,7 +41,7 @@ export const _users = [...Array(24)].map((_, index) => ({
       'Full Stack Designer',
       'Front End Developer',
       'Full Stack Developer',
-    ][index] || 'UI Designer',
+    ][index] || 'Admin',
 }));
 
 // ----------------------------------------------------------------------
