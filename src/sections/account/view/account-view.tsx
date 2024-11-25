@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
@@ -11,15 +10,14 @@ import TablePagination from '@mui/material/TablePagination';
 
 import { _users } from 'src/_mock';
 import { DashboardContent } from 'src/layouts/dashboard';
-
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
-
 import { TableNoData } from '../table-no-data';
 import { AccountTableRow } from '../account-table-row';
 import { AccountTableHead } from '../account-table-head';
 import { TableEmptyRows } from '../table-empty-rows';
 import { AccountTableToolbar } from '../account-table-toolbar';
+import { AddAccountDialog } from '../add-account-dialog'; // Import component thêm tài khoản
 import { emptyRows, applyFilter, getComparator } from '../utils';
 
 import type { AccountProps } from '../account-table-row';
@@ -28,29 +26,59 @@ import type { AccountProps } from '../account-table-row';
 
 export function AccountView() {
   const table = useTable();
-
   const [filterName, setFilterName] = useState('');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [users, setUsers] = useState(_users); // Lưu trữ danh sách người dùng
 
   const dataFiltered: AccountProps[] = applyFilter({
-    inputData: _users,
+    inputData: users,
     comparator: getComparator(table.order, table.orderBy),
     filterName,
   });
 
   const notFound = !dataFiltered.length && !!filterName;
 
+  const handleDialogOpen = () => {
+    setOpenDialog(true);
+  };
+
+  const handleDialogClose = () => {
+    setOpenDialog(false);
+  };
+
+  const handleAddAccount = (account: { username: string; password: string; role: string }) => {
+    const newUser = {
+      id: `${users.length + 1}`, // Tạo id mới cho tài khoản
+      name: account.username,
+      role: account.role,
+    };
+    setUsers((prev) => [...prev, newUser]); // Cập nhật danh sách người dùng
+    alert('Tài khoản mới đã được thêm!');
+    handleDialogClose();
+  };
+
+  const handleUpdateAccount = (updatedAccount: { username: string; password: string; role: string; id: string }) => {
+    setUsers((prev) => 
+      prev.map(user => 
+        user.id === updatedAccount.id 
+          ? { ...user, name: updatedAccount.username, role: updatedAccount.role } 
+          : user
+      )
+    );
+    alert('Tài khoản đã được cập nhật!');
+  };  
+
   return (
     <DashboardContent>
       <Box display="flex" alignItems="center" mb={5}>
-        <Typography variant="h4" flexGrow={1}>
-          Account
-        </Typography>
+        <Typography variant="h4" flexGrow={1}>Tài khoản</Typography>
         <Button
           variant="contained"
           color="inherit"
           startIcon={<Iconify icon="mingcute:add-line" />}
+          onClick={handleDialogOpen}
         >
-          New Account
+          Thêm tài khoản mới
         </Button>
       </Box>
 
@@ -70,21 +98,18 @@ export function AccountView() {
               <AccountTableHead
                 order={table.order}
                 orderBy={table.orderBy}
-                rowCount={_users.length}
+                rowCount={users.length}
                 numSelected={table.selected.length}
                 onSort={table.onSort}
                 onSelectAllRows={(checked) =>
                   table.onSelectAllRows(
                     checked,
-                    _users.map((user) => user.id)
+                    users.map((user) => user.id)
                   )
                 }
                 headLabel={[
-                  { id: 'name', label: 'Name' },
-                  { id: 'company', label: 'Company' },
-                  { id: 'role', label: 'Role' },
-                  { id: 'isVerified', label: 'Verified', align: 'center' },
-                  { id: 'status', label: 'Status' },
+                  { id: 'name', label: 'Tên tài khoản' },
+                  { id: 'role', label: 'Vai trò' },
                   { id: '' },
                 ]}
               />
@@ -100,12 +125,13 @@ export function AccountView() {
                       row={row}
                       selected={table.selected.includes(row.id)}
                       onSelectRow={() => table.onSelectRow(row.id)}
+                      onUpdateAccount={handleUpdateAccount} // Gửi hàm cập nhật tài khoản
                     />
                   ))}
 
                 <TableEmptyRows
                   height={68}
-                  emptyRows={emptyRows(table.page, table.rowsPerPage, _users.length)}
+                  emptyRows={emptyRows(table.page, table.rowsPerPage, users.length)}
                 />
 
                 {notFound && <TableNoData searchQuery={filterName} />}
@@ -117,13 +143,19 @@ export function AccountView() {
         <TablePagination
           component="div"
           page={table.page}
-          count={_users.length}
+          count={users.length}
           rowsPerPage={table.rowsPerPage}
           onPageChange={table.onChangePage}
           rowsPerPageOptions={[5, 10, 25]}
           onRowsPerPageChange={table.onChangeRowsPerPage}
         />
       </Card>
+
+      <AddAccountDialog
+        open={openDialog}
+        onClose={handleDialogClose}
+        onAdd={handleAddAccount}
+      />
     </DashboardContent>
   );
 }
