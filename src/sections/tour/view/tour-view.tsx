@@ -1,197 +1,393 @@
-import { useState, useCallback } from 'react';
+import React, { useState } from 'react';
+import {
+  Box,
+  Button,
+  Card,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+  TablePagination,
+  Modal,
+  Grid,
+  TextField,
+  Select,
+  MenuItem,
+  IconButton,
+  SvgIcon,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from '@mui/material';
 
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Table from '@mui/material/Table';
-import Button from '@mui/material/Button';
-import TableBody from '@mui/material/TableBody';
-import Typography from '@mui/material/Typography';
-import TableContainer from '@mui/material/TableContainer';
-import TablePagination from '@mui/material/TablePagination';
+type Tour = {
+  id: number;
+  tripName: string;
+  location: string;
+  price: string;
+  startDate: string;
+  days: number;
+  tourType: string;
+  images?: File[];  // Optional: for handling image uploads
+};
 
-import { _users } from 'src/_mock';
-import { DashboardContent } from 'src/layouts/dashboard';
+const mockData: Tour[] = [
+  {
+    id: 1,
+    tripName: 'Tour Đà Lạt',
+    location: 'Đà Lạt',
+    price: '2000000',
+    startDate: '2024-12-01',
+    days: 3,
+    tourType: 'Nội địa',
+  },
+  {
+    id: 2,
+    tripName: 'Tour Nha Trang',
+    location: 'Nha Trang',
+    price: '3000000',
+    startDate: '2024-12-10',
+    days: 5,
+    tourType: 'Nội địa',
+  },
+];
 
-import { Iconify } from 'src/components/iconify';
-import { Scrollbar } from 'src/components/scrollbar';
+const CustomDeleteIcon = () => (
+  <SvgIcon>
+    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM16 4h-2V2H10v2H6v2h12V4z" />
+  </SvgIcon>
+);
 
-import { TableNoData } from '../table-no-data';
-import { TourTableRow } from '../tour-table-row';
-import { TourTableHead } from '../tour-table-head';
-import { TableEmptyRows } from '../table-empty-rows';
-import { TourTableToolbar } from '../tour-table-toolbar';
-import { emptyRows, applyFilter, getComparator } from '../utils';
-
-import type { TourProps } from '../tour-table-row';
-
-// ----------------------------------------------------------------------
+const CustomEditIcon = () => (
+  <SvgIcon>
+    <path d="M3 17.25V21h3.75L18.81 10.94l-3.75-3.75L3 17.25zm2.88-.98L13.02 8.9l3.75 3.75-7.22 7.22L5.88 16.27zm9.58-9.58l1.34-1.34c.39-.39.39-1.02 0-1.41-.39-.39-1.02-.39-1.41 0l-1.34 1.34 1.41 1.41 1.34-1.34z" />
+  </SvgIcon>
+);
 
 export function TourView() {
-  const table = useTable();
-
   const [filterName, setFilterName] = useState('');
-
-  const dataFiltered: TourProps[] = applyFilter({
-    inputData: _users,
-    comparator: getComparator(table.order, table.orderBy),
-    filterName,
+  const [openForm, setOpenForm] = useState(false);
+  const [formData, setFormData] = useState<Tour>({
+    id: 0,
+    tripName: '',
+    location: '',
+    price: '',
+    startDate: '',
+    days: 0,
+    tourType: '',
+    images: [],
   });
+  const [data, setData] = useState(mockData);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [page, setPage] = useState(0);
 
-  const notFound = !dataFiltered.length && !!filterName;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: name === 'price' ? value : value });
+  };
+
+  const handleSelectChange = (e: React.ChangeEvent<{ name?: string; value: string }>) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name || '']: value });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFormData({ ...formData, images: Array.from(e.target.files) });
+    }
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.price || isNaN(Number(formData.price))) {
+      alert("Giá không hợp lệ!");
+      return;
+    }
+    if (!formData.days || isNaN(Number(formData.days))) {
+      alert("Số ngày không hợp lệ!");
+      return;
+    }
+
+    if (formData.id !== 0) {
+      setData((prevData) =>
+        prevData.map((item) => (item.id === formData.id ? { ...formData } : item))
+      );
+    } else {
+      setData((prevData) => [
+        ...prevData,
+        { ...formData, id: prevData.length + 1 },
+      ]);
+    }
+    setOpenForm(false); // Close form
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setFormData({
+      id: 0,
+      tripName: '',
+      location: '',
+      price: '',
+      startDate: '',
+      days: 0,
+      tourType: '',
+      images: [],
+    });
+  };
+
+  const handleEdit = (id: number) => {
+    const editTour = data.find((item) => item.id === id);
+    if (editTour) {
+      setFormData({
+        ...editTour,
+        images: [], // Reset images if not needed
+      });
+      setOpenForm(true); // Open the form for editing
+    }
+  };
+
+  const handleDelete = (id: number) => {
+    setOpenDeleteDialog(true);
+    setDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    setData((prevData) => prevData.filter((item) => item.id !== deleteId));
+    setOpenDeleteDialog(false);
+    setDeleteId(null);
+  };
+
+  const cancelDelete = () => {
+    setOpenDeleteDialog(false);
+    setDeleteId(null);
+  };
+
+  const filteredData = data.filter((item) =>
+    item.tripName.toLowerCase().includes(filterName.toLowerCase())
+  );
+
+  const handlePageChange = (event: React.MouseEvent<HTMLButtonElement>, newPage: number) => {
+    setPage(newPage);
+  };
 
   return (
-    <DashboardContent>
+    <Box p={4}>
       <Box display="flex" alignItems="center" mb={5}>
         <Typography variant="h4" flexGrow={1}>
           Tours
         </Typography>
         <Button
           variant="contained"
-          color="inherit"
-          startIcon={<Iconify icon="mingcute:add-line" />}
+          color="primary"
+          startIcon={<CustomEditIcon />}
+          onClick={() => setOpenForm(true)}
         >
           New Tour
         </Button>
       </Box>
 
       <Card>
-        <TourTableToolbar
-          numSelected={table.selected.length}
-          filterName={filterName}
-          onFilterName={(event: React.ChangeEvent<HTMLInputElement>) => {
-            setFilterName(event.target.value);
-            table.onResetPage();
-          }}
-        />
-
-        <Scrollbar>
-          <TableContainer sx={{ overflow: 'unset' }}>
-            <Table sx={{ minWidth: 800 }}>
-              <TourTableHead
-                order={table.order}
-                orderBy={table.orderBy}
-                rowCount={_users.length}
-                numSelected={table.selected.length}
-                onSort={table.onSort}
-                onSelectAllRows={(checked) =>
-                  table.onSelectAllRows(
-                    checked,
-                    _users.map((user) => user.id)
-                  )
-                }
-                headLabel={[
-                  { id: 'name', label: 'Name' },
-                  { id: 'company', label: 'Company' },
-                  { id: 'role', label: 'Role' },
-                  { id: 'isVerified', label: 'Verified', align: 'center' },
-                  { id: 'status', label: 'Status' },
-                  { id: '' },
-                ]}
-              />
-              <TableBody>
-                {dataFiltered
-                  .slice(
-                    table.page * table.rowsPerPage,
-                    table.page * table.rowsPerPage + table.rowsPerPage
-                  )
-                  .map((row) => (
-                    <TourTableRow
-                      key={row.id}
-                      row={row}
-                      selected={table.selected.includes(row.id)}
-                      onSelectRow={() => table.onSelectRow(row.id)}
-                    />
-                  ))}
-
-                <TableEmptyRows
-                  height={68}
-                  emptyRows={emptyRows(table.page, table.rowsPerPage, _users.length)}
-                />
-
-                {notFound && <TableNoData searchQuery={filterName} />}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Scrollbar>
-
+        <Box p={2}>
+          <TextField
+            fullWidth
+            variant="outlined"
+            label="Tìm kiếm Tour"
+            value={filterName}
+            onChange={(e) => setFilterName(e.target.value)}
+          />
+        </Box>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Tên Tour</TableCell>
+                <TableCell>Địa điểm</TableCell>
+                <TableCell>Giá</TableCell>
+                <TableCell>Ngày khởi hành</TableCell>
+                <TableCell>Số ngày</TableCell>
+                <TableCell>Loại Tour</TableCell>
+                <TableCell>Hành động</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredData.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>{row.tripName}</TableCell>
+                  <TableCell>{row.location}</TableCell>
+                  <TableCell>{row.price}</TableCell>
+                  <TableCell>{row.startDate}</TableCell>
+                  <TableCell>{row.days}</TableCell>
+                  <TableCell>{row.tourType}</TableCell>
+                  <TableCell>
+                    <IconButton onClick={() => handleEdit(row.id)} color="primary">
+                      <CustomEditIcon />
+                    </IconButton>
+                    <IconButton onClick={() => handleDelete(row.id)} color="error">
+                      <CustomDeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredData.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    Không tìm thấy kết quả.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
         <TablePagination
           component="div"
-          page={table.page}
-          count={_users.length}
-          rowsPerPage={table.rowsPerPage}
-          onPageChange={table.onChangePage}
+          count={filteredData.length}
+          rowsPerPage={5}
+          page={page}
+          onPageChange={handlePageChange}
           rowsPerPageOptions={[5, 10, 25]}
-          onRowsPerPageChange={table.onChangeRowsPerPage}
         />
       </Card>
-    </DashboardContent>
+
+      {/* Modal Form */}
+      <Modal open={openForm} onClose={() => setOpenForm(false)}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+            width: '90%',
+            maxWidth: 500,
+          }}
+        >
+          <Typography variant="h5">{formData.id ? 'Chỉnh sửa Tour' : 'Tạo mới Tour'}</Typography>
+          <form onSubmit={handleFormSubmit}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label="Tên Tour"
+                  name="tripName"
+                  value={formData.tripName}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label="Địa điểm"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label="Giá"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label="Ngày khởi hành"
+                  name="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={handleInputChange}
+                  required
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label="Số ngày"
+                  name="days"
+                  type="number"
+                  value={formData.days}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Select
+                  fullWidth
+                  name="tourType"
+                  value={formData.tourType}
+                  onChange={handleSelectChange}
+                  displayEmpty
+                  required
+                >
+                  <MenuItem value="">
+                    <em>Chọn loại tour</em>
+                  </MenuItem>
+                  <MenuItem value="Nội địa">Nội địa</MenuItem>
+                  <MenuItem value="Nước ngoài">Nước ngoài</MenuItem>
+                </Select>
+              </Grid>
+              <Grid item xs={12}>
+                <input
+                  type="file"
+                  onChange={handleFileChange}
+                  multiple
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                >
+                  {formData.id ? 'Cập nhật Tour' : 'Tạo mới Tour'}
+                </Button>
+              </Grid>
+            </Grid>
+          </form>
+        </Box>
+      </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={openDeleteDialog} onClose={cancelDelete}>
+        <DialogTitle>Xác nhận xóa</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Bạn có chắc chắn muốn xóa tour này không?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelDelete} color="primary">
+            Hủy
+          </Button>
+          <Button onClick={confirmDelete} color="secondary">
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
-}
-
-// ----------------------------------------------------------------------
-
-export function useTable() {
-  const [page, setPage] = useState(0);
-  const [orderBy, setOrderBy] = useState('name');
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
-
-  const onSort = useCallback(
-    (id: string) => {
-      const isAsc = orderBy === id && order === 'asc';
-      setOrder(isAsc ? 'desc' : 'asc');
-      setOrderBy(id);
-    },
-    [order, orderBy]
-  );
-
-  const onSelectAllRows = useCallback((checked: boolean, newSelecteds: string[]) => {
-    if (checked) {
-      setSelected(newSelecteds);
-      return;
-    }
-    setSelected([]);
-  }, []);
-
-  const onSelectRow = useCallback(
-    (inputValue: string) => {
-      const newSelected = selected.includes(inputValue)
-        ? selected.filter((value) => value !== inputValue)
-        : [...selected, inputValue];
-
-      setSelected(newSelected);
-    },
-    [selected]
-  );
-
-  const onResetPage = useCallback(() => {
-    setPage(0);
-  }, []);
-
-  const onChangePage = useCallback((event: unknown, newPage: number) => {
-    setPage(newPage);
-  }, []);
-
-  const onChangeRowsPerPage = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setRowsPerPage(parseInt(event.target.value, 10));
-      onResetPage();
-    },
-    [onResetPage]
-  );
-
-  return {
-    page,
-    order,
-    onSort,
-    orderBy,
-    selected,
-    rowsPerPage,
-    onSelectRow,
-    onResetPage,
-    onChangePage,
-    onSelectAllRows,
-    onChangeRowsPerPage,
-  };
 }

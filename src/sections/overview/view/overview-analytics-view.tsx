@@ -1,15 +1,80 @@
+import React from 'react';
 import Grid from '@mui/material/Unstable_Grid2';
 import Typography from '@mui/material/Typography';
-
-import { _tasks, _posts, _timeline } from 'src/_mock';
 import { DashboardContent } from 'src/layouts/dashboard';
+import CanvasJSReact from '@canvasjs/react-charts'; // Import từ package bên ngoài
 
-import { AnalyticsNews } from '../analytics-news';
+import { AnalyticsNews } from '../analytics-news'; // Imports nội bộ
 import { AnalyticsOrderTimeline } from '../analytics-order-timeline';
 import { AnalyticsWidgetSummary } from '../analytics-widget-summary';
-// ----------------------------------------------------------------------
+
+const CanvasJS = CanvasJSReact.CanvasJS;
+const CanvasJSChart = CanvasJSReact.CanvasJSChart;
+
+// Mock data
+const mockPosts = [
+  { id: 1, title: "Tin tức 1", date: "2024-01-01" },
+  { id: 2, title: "Tin tức 2", date: "2024-01-02" },
+  { id: 3, title: "Tin tức 3", date: "2024-01-03" },
+  { id: 4, title: "Tin tức 4", date: "2024-01-04" },
+  { id: 5, title: "Tin tức 5", date: "2024-01-05" },
+];
+
+const mockTimeline = [
+  { id: 1, title: "Booking 1", date: "2024-01-01" },
+  { id: 2, title: "Booking 2", date: "2024-01-02" },
+  { id: 3, title: "Booking 3", date: "2024-01-03" },
+];
 
 export function OverviewAnalyticsView() {
+  // Dữ liệu cho biểu đồ doanh thu
+  const revenueChartOptions = {
+    animationEnabled: true,
+    theme: "light2",
+    title: {
+      text: "Doanh thu hàng tháng"
+    },
+    axisY: {
+      title: "Doanh thu (VND)"
+    },
+    data: [{
+      type: "column",
+      dataPoints: [
+        { label: "Jan", y: 714000 },
+        { label: "Feb", y: 800000 },
+        { label: "Mar", y: 500000 },
+        { label: "Apr", y: 600000 },
+        { label: "May", y: 800000 },
+        { label: "Jun", y: 900000 },
+        { label: "Jul", y: 700000 },
+        { label: "Aug", y: 800000 }
+      ]
+    }]
+  };
+
+  // Dữ liệu cho biểu đồ phân bổ tour
+  const tourData = [
+    { label: "Tour 1", y: 30 },
+    { label: "Tour 2", y: 20 },
+    { label: "Tour 3", y: 25 },
+    { label: "Tour 4", y: 15 },
+    { label: "Tour 5", y: 10 },
+  ];
+
+  const tourChartOptions = {
+    animationEnabled: true,
+    theme: "light2",
+    title: {
+      text: "Phân bổ các loại tour"
+    },
+    data: [{
+      type: "pie",
+      showInLegend: true,
+      toolTipContent: "<b>{label}</b>: {y}%",
+      dataPoints: tourData,
+    }]
+  };
+
   return (
     <DashboardContent maxWidth="xl">
       <Typography variant="h4" sx={{ mb: { xs: 3, md: 5 } }}>
@@ -73,11 +138,21 @@ export function OverviewAnalyticsView() {
         </Grid>
 
         <Grid xs={12} md={6} lg={8}>
-          <AnalyticsNews title="Tin tức mới" list={_posts.slice(0, 5)} />
+          <AnalyticsNews title="Tin tức mới" list={mockPosts} />
         </Grid>
 
         <Grid xs={12} md={6} lg={4}>
-          <AnalyticsOrderTimeline title="Booking Tour gần đây" list={_timeline} />
+          <AnalyticsOrderTimeline title="Booking Tour gần đây" list={mockTimeline} />
+        </Grid>
+
+        {/* Thêm biểu đồ doanh thu */}
+        <Grid xs={12}>
+          <CanvasJSChart options={revenueChartOptions} />
+        </Grid>
+
+        {/* Thêm biểu đồ phân bổ tour */}
+        <Grid xs={12}>
+          <CanvasJSChart options={tourChartOptions} />
         </Grid>
       </Grid>
     </DashboardContent>

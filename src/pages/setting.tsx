@@ -2,7 +2,7 @@ import { Helmet } from 'react-helmet-async';
 
 import { CONFIG } from 'src/config-global';
 
-import { AccountView } from 'src/sections/account/view';
+import { SystemSettingsView} from 'src/sections/setting'
 
 // ----------------------------------------------------------------------
 
@@ -10,10 +10,10 @@ export default function Page() {
   return (
     <>
       <Helmet>
-        <title> {`Quản lý Account - ${CONFIG.appName}`}</title>
+        <title> {`Cài đặt hệ thống - ${CONFIG.appName}`}</title>
       </Helmet>
 
-      <AccountView />
+      <SystemSettingsView />
     </>
   );
 }

@@ -1,10 +1,11 @@
+cài đặt: npm install @canvasjs/react-charts
+
+
 1. File route: fontend\admin\src\routes\sections.tsx
 2. File view chính: fontend\admin\src\pages
 3. File view thành phần:
-    1. fontend\admin\src\sections\account
     2. fontend\admin\src\sections\book-tour
     3. fontend\admin\src\sections\tour
-    4. fontend\admin\src\sections\passenger
     5. fontend\admin\src\sections\user
 
 

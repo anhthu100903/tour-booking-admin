@@ -30,18 +30,8 @@ export const navData = [
    
   },
   {
-    title: 'Quản lý hành khách',
-    path: '/passenger',
-    icon: icon('ic-passenger'),
-  },
-  {
-    title: 'Quản lý tài khoản',
-    path: '/account',
-    icon: icon('ic-account'),
-  },
-  {
     title: 'Cài Đặt Hệ Thống',
-    path: '/system',
+    path: '/setting',
     icon: icon('ic-system'),
   },
 ];

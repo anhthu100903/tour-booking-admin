@@ -15,8 +15,7 @@ export const TourPage = lazy(() => import('src/pages/tour'));
 export const UserPage = lazy(() => import('src/pages/user'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const BookTourPage = lazy(() => import('src/pages/book-tour'));
-export const PassengerPage = lazy(() => import('src/pages/passenger'));
-export const AccountPage = lazy(() => import('src/pages/account'));
+export const PageSetting = lazy(() => import('src/pages/setting'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
 
 // ----------------------------------------------------------------------
@@ -49,8 +48,6 @@ export function Router() {
         { path: 'user', element: <UserPage /> },
         { path: 'booking-tour', element: <BookTourPage /> },
         { path: 'tour', element: <TourPage /> },
-        { path: 'passenger', element: <PassengerPage /> },
-        { path: 'account', element: <AccountPage /> },
       ],
     },
     {
@@ -60,6 +57,10 @@ export function Router() {
           <SignInPage />
         </AuthLayout>
       ),
+    },
+    {
+      path: 'setting',
+      element: <PageSetting />,
     },
     {
       path: '404',
