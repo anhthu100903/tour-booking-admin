@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
   Box,
   Card,
@@ -16,6 +15,7 @@ import {
   MenuItem,
   IconButton,
   SvgIcon,
+  SelectChangeEvent,
   Dialog,
   DialogActions,
   DialogContent,
@@ -23,8 +23,10 @@ import {
   DialogTitle,
   TablePagination,
 } from '@mui/material';
-
+import { useEffect, useState, useRef } from 'react';
 import { Scrollbar } from 'src/components/scrollbar';
+import { getToken } from 'src/service/localStorage';
+import { getBookingInfo } from 'src/service/bookTourService';
 
 const CustomDeleteIcon = () => (
   <SvgIcon>
@@ -62,30 +64,177 @@ const mockData = [
   },
 ];
 
+interface Booking {
+  id: number | string;
+  numberOfAdult: number;
+  numberOfChildren: number;
+  numberOfBaby: number;
+  departureDate: string | null;
+  createdAt: string;
+  tourId: number;
+  tourName: String;
+  destinitation: String;
+  userId: number;
+  fullName: string;
+  email: string;
+  payment: any; // Thay thế 'any' bằng kiểu cụ thể nếu có thể
+  active: boolean;
+}
+
 export function BookTourView() {
-  const [data, setData] = useState(mockData);
-  const [filterName, setFilterName] = useState('');
-  const [openForm, setOpenForm] = useState(false);
-  const [formData, setFormData] = useState({
-    id: null,
+  const [bookings, setBookings] = useState<Booking[]>([]); // Lưu trữ danh sách booking
+  const [loading, setLoading] = useState(true); // Trạng thái loading
+  const [error, setError] = useState(false); // Trạng thái lỗi
+  const fetchCalled = useRef(false); // Sử dụng useRef để tránh gọi API nhiều lần
+  const [changeSelect, setChangeSelect] = useState('pending');
+  const [bookingData, setBookingData] = useState<{
+    id: number | string;
+    customerName: string;
+    tourInfo: string;
+    tripName: string;
+    bookingDate: string;
+    adults: string;
+    children: string;
+    baby: string;
+    paymentStatus: boolean;
+    email: string;
+    userId: string;
+    paymentId: string | null;
+  }[]>([]);  // Khai báo mảng kiểu Booking[]
+  
+
+  const [formData, setFormData] =  useState<{
+    id: number | string;
+    customerName: string;
+    tourInfo: string;
+    tripName: string;
+    bookingDate: string;
+    adults: string;
+    children: string;
+    baby: string;
+    paymentStatus: boolean;
+    email: string;
+    userId: string;
+    paymentId: string | null;
+  }>({
+    id: '', // id có thể là number hoặc string
     customerName: '',
     tourInfo: '',
     tripName: '',
     bookingDate: '',
     adults: '',
     children: '',
-    paymentStatus: '',
-  });
+    baby: '',
+    paymentStatus: false,
+    email: '',
+    userId: '',
+    paymentId: '',
+  });  // Khai báo đối tượng thay vì mảng
+  
+
+  const resetForm = () => {
+    setFormData({
+      id: '',
+      customerName: '',
+      tourInfo: '',
+      tripName: '',
+      bookingDate: '',
+      adults: '',
+      children: '',
+      baby: '',
+      paymentStatus: false,
+      email: '',
+      userId: '',
+      paymentId: '',
+    });
+  };
+
+  const PAGE = 0;
+  const PAGESIZE = 20;
+  const TOKEN = getToken();
+
+  const fetchBookings = async (page = PAGE, pageSize = PAGESIZE) => {
+    if (fetchCalled.current) return; // Tránh gọi API nhiều lần
+    fetchCalled.current = true; // Đánh dấu là đã gọi API
+
+    try {
+      // Gọi API với TOKEN trong header
+      const data = await getBookingInfo(page, pageSize, TOKEN); // Giả sử getBookingInfo hỗ trợ token trong header
+      
+      console.log(data)
+      // Nếu dữ liệu không hợp lệ hoặc rỗng, không xử lý
+      if (!data || data.length === 0) {
+        console.error("Dữ liệu không hợp lệ hoặc không có dữ liệu.");
+        setError(true);
+        return;
+      }
+      // Cập nhật state bookings với dữ liệu mới
+      setBookings((prevBookings) => [...prevBookings, ...data]);  // Nối mảng cũ và mảng mới
+
+      // Nếu chỉ lấy một booking đầu tiên (hoặc cần update form theo booking)
+      if (data && data.length > 0) {
+        // Duyệt qua tất cả các phần tử trong data
+        const bookings = data.map((booking: Booking) => ({
+          id: booking.id,
+          customerName: booking.fullName,
+          tourInfo: booking.tourName,
+          tripName: booking.destinitation ?? '',
+          bookingDate: booking.departureDate ?? '',
+          adults: booking.numberOfAdult ?? '',
+          children: booking.numberOfChildren ?? '',
+          baby: booking.numberOfBaby || '',
+          paymentStatus: booking.payment?.active || false,  // Cẩn thận nếu payment có thể là null
+          userId: booking.userId,
+          paymentId: booking.payment?.id ?? '',
+          email: booking.email ?? '',
+        }));
+        // Cập nhật bookingData với các booking mới
+        setBookingData((prevData) => [...prevData, ...bookings]);
+      }
+    } catch (error) {
+      console.log(error);
+      setError(true); // Bật trạng thái lỗi nếu có vấn đề
+    } finally {
+      setLoading(false);  // Tắt trạng thái loading sau khi hoàn thành
+    }
+  };
+
+  useEffect(() => {
+    if (TOKEN) {
+      fetchBookings(0, PAGESIZE);
+      console.log(bookingData);
+    } else {
+      setError(true);  // Nếu không có token, bật lỗi
+    }
+  }, [TOKEN]);  // Chạy lại nếu TOKEN thay đổi
+
+
+
+
+
+
+
+
+
+  const [data, setData] = useState(mockData);
+  const [filterName, setFilterName] = useState('');
+  const [openForm, setOpenForm] = useState(false);
+  
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSelectChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
-    const { name, value } = e.target;
+  const handleSelectChange = (event: SelectChangeEvent<string>) => {
+    const { name, value } = event.target;
     setFormData({ ...formData, [name || '']: value });
   };
+
+  // const handleSelectChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+  //   const { name, value } = e.target;
+  //   setFormData({ ...formData, [name || '']: value });
+  // };
 
   // const handleFormSubmit = (e: React.FormEvent) => {
   //   e.preventDefault();
@@ -105,35 +254,38 @@ export function BookTourView() {
   //   resetForm();
   // };
 
-  const resetForm = () => {
-    setFormData({
-      id: null,
-      customerName: '',
-      tourInfo: '',
-      tripName: '',
-      bookingDate: '',
-      adults: '',
-      children: '',
-      paymentStatus: '',
-    });
-  };
+  
 
-  const handleEdit = (id: number) => {
-    const editItem = data.find((item) => item.id === id);
+  const handleEdit = (id: number | string) => {
+    const editItem = bookingData.find((item) => item.id === id);
     if (editItem) {
-      // setFormData(editItem);
+      console.log(editItem.paymentStatus)
+      if(editItem.paymentStatus === true){
+        setChangeSelect("paid");
+      }else {
+        setChangeSelect("unpaid");
+      }
+      setFormData(editItem);
       setOpenForm(true);
     }
   };
 
-  const handleDelete = (id: number) => {
-    setData((prevData) => prevData.filter((item) => item.id !== id));
+  const handleDelete = (id: number | string) => {
+    // setData((prevData) => prevData.filter((item) => item.id !== id));
   };
 
-  const filteredData = data.filter((item) =>
+  const filteredData = bookingData.filter((item) =>
     item.customerName.toLowerCase().includes(filterName.toLowerCase())
   );
 
+  // Hiển thị loading hoặc lỗi nếu có
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>{error}</div>;
+  }
   return (
     <Box p={4}>
       <Box display="flex" alignItems="center" mb={5}>
@@ -145,7 +297,7 @@ export function BookTourView() {
           color="primary"
           onClick={() => setOpenForm(true)}
         >
-          New Booking Tour
+          Thêm
         </Button>
       </Box>
 
@@ -154,7 +306,7 @@ export function BookTourView() {
           <TextField
             fullWidth
             variant="outlined"
-            label="Search by Customer Name"
+            label="Tìm kiếm theo tên"
             value={filterName}
             onChange={(e) => setFilterName(e.target.value)}
           />
@@ -164,34 +316,36 @@ export function BookTourView() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Customer Name</TableCell>
-                  <TableCell>Tour Info</TableCell>
-                  <TableCell align="center">Booking Date</TableCell>
-                  <TableCell align="center">Payment Status</TableCell>
-                  <TableCell align="center">Actions</TableCell>
+                  <TableCell>STT</TableCell>
+                  <TableCell>Tên Khách Hàng</TableCell>
+                  <TableCell>Tên Tour</TableCell>
+                  <TableCell align="center">Ngày Khởi Hành</TableCell>
+                  <TableCell align="center">Trạng Thái Thanh Toán</TableCell>
+                  <TableCell align="center">Hành động</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredData.map((row) => (
+                {filteredData.map((row, index) => (
                   <TableRow key={row.id}>
+                    <TableCell>{index + 1}</TableCell>
                     <TableCell>{row.customerName}</TableCell>
                     <TableCell>{row.tourInfo}</TableCell>
                     <TableCell align="center">{row.bookingDate}</TableCell>
-                    <TableCell align="center">{row.paymentStatus}</TableCell>
+                    <TableCell align="center">{row.paymentStatus?"Đã thanh toán":"Chưa Thanh Toán"}</TableCell>
                     <TableCell align="center">
                       <IconButton onClick={() => handleEdit(row.id)} color="primary">
                         <CustomEditIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDelete(row.id)} color="error">
+                      {/* <IconButton onClick={() => handleDelete(row.id)} color="error">
                         <CustomDeleteIcon />
-                      </IconButton>
+                      </IconButton> */}
                     </TableCell>
                   </TableRow>
                 ))}
                 {filteredData.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} align="center">
-                      No results found.
+                      Không tìm thấy kết quả.
                     </TableCell>
                   </TableRow>
                 )}
@@ -202,7 +356,143 @@ export function BookTourView() {
       </Card>
 
       {/* Form Modal */}
+      {/* Form Modal */}
       <Modal open={openForm} onClose={() => setOpenForm(false)}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+            width: '90%',
+            maxWidth: 500,
+            maxHeight: '80vh',  // Giới hạn chiều cao của modal
+            overflowY: 'auto',  // Thêm khả năng cuộn khi cần thiết
+            zIndex: 1300, // Đảm bảo modal nổi bật
+          }}
+        >
+          <Typography variant="h6" mb={3}>
+            {formData.id ? 'Edit Booking Tour' : 'New Booking Tour'}
+          </Typography>
+          <form >
+          {/* onSubmit={handleFormSubmit} */}
+            <TextField
+              fullWidth
+              label="Tên khách hàng"
+              name="customerName"
+              value={formData.customerName}
+              onChange={handleInputChange}
+              margin="normal"
+              required
+            />
+            <TextField
+              fullWidth
+              label="Tên tour"
+              name="tourInfo"
+              value={formData.tourInfo}
+              onChange={handleInputChange}
+              margin="normal"
+              required
+              InputProps={{
+                readOnly: true,  // Thiết lập trường này chỉ có thể xem, không thể chỉnh sửa
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Điểm đến"
+              name="tripName"
+              value={formData.tripName}
+              onChange={handleInputChange}
+              margin="normal"
+              InputProps={{
+                readOnly: true,  // Thiết lập trường này chỉ có thể xem, không thể chỉnh sửa
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Ngày đặt tour"
+              name="bookingDate"
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              value={formData.bookingDate}
+              onChange={handleInputChange}
+              margin="normal"
+              required
+              InputProps={{
+                readOnly: true,  // Thiết lập trường này chỉ có thể xem, không thể chỉnh sửa
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Người lớn"
+              name="adults"
+              type="number"
+              value={formData.adults}
+              onChange={handleInputChange}
+              margin="normal"
+              required
+              InputProps={{
+                readOnly: true,  // Thiết lập trường này chỉ có thể xem, không thể chỉnh sửa
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Trẻ em"
+              name="children"
+              type="number"
+              value={formData.children}
+              onChange={handleInputChange}
+              margin="normal"
+              InputProps={{
+                readOnly: true,  // Thiết lập trường này chỉ có thể xem, không thể chỉnh sửa
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Em bé"
+              name="baby"
+              type="number"
+              value={formData.baby}
+              onChange={handleInputChange}
+              margin="normal"
+              InputProps={{
+                readOnly: true,  // Thiết lập trường này chỉ có thể xem, không thể chỉnh sửa
+              }}
+            />
+            <Select
+              fullWidth
+              name="Trạng thái thanh toán"
+              value={changeSelect}
+              onChange={handleSelectChange}
+              displayEmpty
+              sx={{ mt: 2, mb: 2 }}
+            >
+              <MenuItem value="" disabled>
+                Chọn trạng thái thanh toán
+              </MenuItem>
+              <MenuItem value="paid">Đã thanh toán</MenuItem>
+              <MenuItem value="unpaid">Chưa thanh toán</MenuItem>
+              <MenuItem value="pending">Đang xử lý</MenuItem>
+              {/* <MenuItem value="canceled">Hủy đặt tour</MenuItem> */}
+            </Select>
+            <Box mt={3} display="flex" justifyContent="flex-end" gap={2}>
+              <Button onClick={() => setOpenForm(false)} color="inherit">
+                Cancel
+              </Button>
+              <Button type="submit" variant="contained">
+                Save
+              </Button>
+            </Box>
+          </form>
+        </Box>
+      </Modal>
+
+
+      {/* <Modal open={openForm} onClose={() => setOpenForm(false)}>
         <Box
           sx={{
             position: 'absolute',
@@ -221,10 +511,10 @@ export function BookTourView() {
             {formData.id ? 'Edit Booking Tour' : 'New Booking Tour'}
           </Typography>
           <form >
-            {/* onSubmit={handleFormSubmit} */}
+            onSubmit={handleFormSubmit}
             <TextField
               fullWidth
-              label="Customer Name"
+              label="Tên khách hàng"
               name="customerName"
               value={formData.customerName}
               onChange={handleInputChange}
@@ -233,7 +523,7 @@ export function BookTourView() {
             />
             <TextField
               fullWidth
-              label="Tour Info"
+              label="Tên tour"
               name="tourInfo"
               value={formData.tourInfo}
               onChange={handleInputChange}
@@ -242,7 +532,7 @@ export function BookTourView() {
             />
             <TextField
               fullWidth
-              label="Trip Name"
+              label="Điểm đến"
               name="tripName"
               value={formData.tripName}
               onChange={handleInputChange}
@@ -250,7 +540,7 @@ export function BookTourView() {
             />
             <TextField
               fullWidth
-              label="Booking Date"
+              label="Ngày đặt tour"
               name="bookingDate"
               type="date"
               InputLabelProps={{ shrink: true }}
@@ -261,7 +551,7 @@ export function BookTourView() {
             />
             <TextField
               fullWidth
-              label="Adults"
+              label="Người lớn"
               name="adults"
               type="number"
               value={formData.adults}
@@ -271,8 +561,17 @@ export function BookTourView() {
             />
             <TextField
               fullWidth
-              label="Children"
+              label="Trẻ em"
               name="children"
+              type="number"
+              value={formData.children}
+              onChange={handleInputChange}
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              label="Em bé"
+              name="baby"
               type="number"
               value={formData.children}
               onChange={handleInputChange}
@@ -280,18 +579,19 @@ export function BookTourView() {
             />
             <Select
               fullWidth
-              name="paymentStatus"
+              name="Trạng thái thanh toán"
               value={formData.paymentStatus}
-              // onChange={handleSelectChange}
+              onChange={handleSelectChange}
               displayEmpty
               sx={{ mt: 2, mb: 2 }}
             >
               <MenuItem value="" disabled>
-                Select Payment Status
+                Chọn trạng thái thanh toán
               </MenuItem>
-              <MenuItem value="paid">Paid</MenuItem>
-              <MenuItem value="unpaid">Unpaid</MenuItem>
-              <MenuItem value="pending">Pending</MenuItem>
+              <MenuItem value="paid">Đã thanh toán</MenuItem>
+              <MenuItem value="unpaid">Chưa thanh toán</MenuItem>
+              <MenuItem value="pending">Đang xử lý</MenuItem>
+              <MenuItem value="pending">Hủy đặt tour</MenuItem>
             </Select>
             <Box mt={3} display="flex" justifyContent="flex-end" gap={2}>
               <Button onClick={() => setOpenForm(false)} color="inherit">
@@ -303,7 +603,7 @@ export function BookTourView() {
             </Box>
           </form>
         </Box>
-      </Modal>
+      </Modal> */}
     </Box>
   );
 }
