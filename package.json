@@ -24,6 +24,7 @@
   },
   "packageManager": "yarn@1.22.22",
   "dependencies": {
+    "@canvasjs/charts": "^3.10.17",
     "@canvasjs/react-charts": "^1.0.2",
     "@emotion/cache": "^11.13.1",
     "@emotion/react": "^11.13.3",

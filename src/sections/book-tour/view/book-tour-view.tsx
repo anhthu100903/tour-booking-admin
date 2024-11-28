@@ -87,23 +87,23 @@ export function BookTourView() {
     setFormData({ ...formData, [name || '']: value });
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.id) {
-      // Update data
-      setData((prevData) =>
-        prevData.map((item) => (item.id === formData.id ? { ...formData } : item))
-      );
-    } else {
-      // Add new data
-      setData((prevData) => [
-        ...prevData,
-        { id: prevData.length + 1, ...formData },
-      ]);
-    }
-    setOpenForm(false); // Close form
-    resetForm();
-  };
+  // const handleFormSubmit = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (formData.id) {
+  //     // Update data
+  //     setData((prevData) =>
+  //       prevData.map((item) => (item.id === formData.id ? { ...formData } : item))
+  //     );
+  //   } else {
+  //     // Add new data
+  //     setData((prevData) => [
+  //       ...prevData,
+  //       { id: prevData.length + 1, ...formData },
+  //     ]);
+  //   }
+  //   setOpenForm(false); // Close form
+  //   resetForm();
+  // };
 
   const resetForm = () => {
     setFormData({
@@ -121,7 +121,7 @@ export function BookTourView() {
   const handleEdit = (id: number) => {
     const editItem = data.find((item) => item.id === id);
     if (editItem) {
-      setFormData(editItem);
+      // setFormData(editItem);
       setOpenForm(true);
     }
   };
@@ -220,7 +220,8 @@ export function BookTourView() {
           <Typography variant="h6" mb={3}>
             {formData.id ? 'Edit Booking Tour' : 'New Booking Tour'}
           </Typography>
-          <form onSubmit={handleFormSubmit}>
+          <form >
+            {/* onSubmit={handleFormSubmit} */}
             <TextField
               fullWidth
               label="Customer Name"
@@ -281,7 +282,7 @@ export function BookTourView() {
               fullWidth
               name="paymentStatus"
               value={formData.paymentStatus}
-              onChange={handleSelectChange}
+              // onChange={handleSelectChange}
               displayEmpty
               sx={{ mt: 2, mb: 2 }}
             >
