@@ -1,4 +1,8 @@
-cài đặt: npm install @canvasjs/react-charts
+cài đặt: 
+npm install vite-plugin-checker --save-dev
+npm install axios
+npm install
+npm install @canvasjs/react-charts
 
 
 1. File route: fontend\admin\src\routes\sections.tsx

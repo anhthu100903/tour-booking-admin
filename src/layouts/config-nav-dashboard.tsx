@@ -24,7 +24,7 @@ export const navData = [
     icon: icon('ic-book-tour'),
   },
   {
-    title: 'Quản lý khách hàng',
+    title: 'Quản lý tài khoản',
     path: '/user',
     icon: icon('ic-user'),
    

@@ -1,4 +1,3 @@
-import { useState, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
 import Popover from '@mui/material/Popover';
@@ -16,32 +15,37 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
-
+import { useState, useCallback } from 'react';
 // ----------------------------------------------------------------------
 
 export type UserProps = {
-  id: string;
-  customer_name: string;
-  full_name: string;
-  user_name: string;
-  address: string;
-  password: string;
-  email: string;
-  phone: number;
-  gender: string;
-  role: string;
-  is_active: boolean;
-  created_at: Date;
+    id: string;
+    full_name: string;
+    user_name: string;
+    address: string;
+    email: string;
+    phone: number;
+    gender: string;
+    role: string;
+    is_active: boolean;
+    created_at: Date;
 };
+
+export type UserResponse = {
+  totalPages: number;
+  currentPage: number;
+  users: UserProps[];
+}
+
 
 type UserTableRowProps = {
   row: UserProps;
-  selected: boolean;
-  onSelectRow: () => void;
+  // selected: boolean;
+  // onSelectRow: () => void;
   onSaveChanges: (updatedRow: UserProps) => void; // Callback để lưu thay đổi
 };
 
-export function UserTableRow({ row, selected, onSelectRow, onSaveChanges }: UserTableRowProps) {
+export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //selected, onSelectRow,
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDetailDialog, setOpenDetailDialog] = useState(false); // State cho dialog xem chi tiết
@@ -85,10 +89,10 @@ export function UserTableRow({ row, selected, onSelectRow, onSaveChanges }: User
 
   return (
     <>
-      <TableRow hover tabIndex={-1} role="checkbox" selected={selected}>
-        <TableCell padding="checkbox">
+      <TableRow hover tabIndex={-1}>
+        {/* <TableCell padding="checkbox">
           <Checkbox disableRipple checked={selected} onChange={onSelectRow} />
-        </TableCell>
+        </TableCell> */}
 
         <TableCell component="th" scope="row">
           <Box gap={2} display="flex" alignItems="center">
@@ -96,9 +100,12 @@ export function UserTableRow({ row, selected, onSelectRow, onSaveChanges }: User
             {row.full_name}
           </Box>
         </TableCell>
+        {/* <TableCell>{row.full_name}</TableCell> */}
+        <TableCell>{row.user_name}</TableCell>
         <TableCell>{row.email}</TableCell>
         <TableCell>{row.phone}</TableCell>
         <TableCell>{row.role}</TableCell>
+        <TableCell>{row.gender === "MALE" ? "Nam" : "Nữ"}</TableCell>
 
         <TableCell align="center">
           {row.is_active ? (
@@ -157,15 +164,7 @@ export function UserTableRow({ row, selected, onSelectRow, onSaveChanges }: User
         <DialogTitle>Chỉnh Sửa Người Dùng</DialogTitle>
         <DialogContent>
           <TextField
-            label="Customer Name"
-            fullWidth
-            margin="normal"
-            name="customer_name"
-            value={editUser.customer_name}
-            onChange={handleChange}
-          />
-          <TextField
-            label="Full Name"
+            label="Tên đầy đủ"
             fullWidth
             margin="normal"
             name="full_name"
@@ -173,20 +172,11 @@ export function UserTableRow({ row, selected, onSelectRow, onSaveChanges }: User
             onChange={handleChange}
           />
           <TextField
-            label="Username"
+            label="Tên đăng nhập"
             fullWidth
             margin="normal"
             name="user_name"
             value={editUser.user_name}
-            onChange={handleChange}
-          />
-          <TextField
-            label="Password"
-            type="password"
-            fullWidth
-            margin="normal"
-            name="password"
-            value={editUser.password}
             onChange={handleChange}
           />
           <TextField
@@ -198,7 +188,7 @@ export function UserTableRow({ row, selected, onSelectRow, onSaveChanges }: User
             onChange={handleChange}
           />
           <TextField
-            label="Phone"
+            label="Số điện thoại"
             fullWidth
             margin="normal"
             name="phone"
@@ -206,7 +196,7 @@ export function UserTableRow({ row, selected, onSelectRow, onSaveChanges }: User
             onChange={handleChange}
           />
           <TextField
-            label="Address"
+            label="Địa chỉ"
             fullWidth
             margin="normal"
             name="address"
@@ -223,9 +213,9 @@ export function UserTableRow({ row, selected, onSelectRow, onSaveChanges }: User
             onChange={handleChange}
             SelectProps={{ native: true }}
           >
-            <option value="male">Nam</option>
-            <option value="female">Nữ</option>
-            <option value="other">Khác</option>
+            <option value="MALE">Nam</option>
+            <option value="FEMALE">Nữ</option>
+            <option value="OTHER">Khác</option>
           </TextField>
           {/* Combobox for Role */}
           <TextField
@@ -237,9 +227,8 @@ export function UserTableRow({ row, selected, onSelectRow, onSaveChanges }: User
             onChange={handleChange}
             SelectProps={{ native: true }}
           >
-            <option value="admin">Admin</option>
-            <option value="user">User</option>
-            <option value="manager">Manager</option>
+            <option value="ADMIN">Admin</option>
+            <option value="USER">User</option>
           </TextField>
           <TextField
             select
@@ -250,8 +239,8 @@ export function UserTableRow({ row, selected, onSelectRow, onSaveChanges }: User
             onChange={handleChange}
             SelectProps={{ native: true }}
           >
-            <option value="1">Kích hoạt</option>
-            <option value="0">Không kích hoạt</option>
+            <option value="1">Hoạt động</option>
+            <option value="0">Không hoạt động</option>
           </TextField>
         </DialogContent>
         <DialogActions>
@@ -268,15 +257,14 @@ export function UserTableRow({ row, selected, onSelectRow, onSaveChanges }: User
       <Dialog open={openDetailDialog} onClose={handleCloseDetailDialog}>
         <DialogTitle>Thông Tin Chi Tiết</DialogTitle>
         <DialogContent>
-          <p><strong>Tên Khách Hàng:</strong> {row.customer_name}</p>
           <p><strong>Tên Đầy Đủ:</strong> {row.full_name}</p>
-          <p><strong>Tên Người Dùng:</strong> {row.user_name}</p>
+          <p><strong>Tên Đăng Nhập:</strong> {row.user_name}</p>
           <p><strong>Email:</strong> {row.email}</p>
           <p><strong>Điện Thoại:</strong> {row.phone}</p>
           <p><strong>Địa Chỉ:</strong> {row.address}</p>
           <p><strong>Giới Tính:</strong> {row.gender}</p>
           <p><strong>Vai Trò:</strong> {row.role}</p>
-          <p><strong>Trạng Thái:</strong> {row.is_active ? 'Kích hoạt' : 'Không kích hoạt'}</p>
+          <p><strong>Trạng Thái:</strong> {row.is_active ? 'Đang hoạt động' : 'Bị Khóa'}</p>
           <p><strong>Ngày Tạo:</strong> {row.created_at ? row.created_at.toLocaleString() : 'N/A'}</p>
         </DialogContent>
         <DialogActions>

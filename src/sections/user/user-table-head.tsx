@@ -1,3 +1,4 @@
+
 import Box from '@mui/material/Box';
 import TableRow from '@mui/material/TableRow';
 import Checkbox from '@mui/material/Checkbox';
@@ -11,36 +12,27 @@ import { visuallyHidden } from './utils';
 
 type UserTableHeadProps = {
   orderBy: string;
-  rowCount: number;
-  numSelected: number;
+  // rowCount: number;
+  // numSelected: number;
   order: 'asc' | 'desc';
   onSort: (id: string) => void;
   headLabel: Record<string, any>[];
-  onSelectAllRows: (checked: boolean) => void;
+  // onSelectAllRows: (checked: boolean) => void;
 };
 
 export function UserTableHead({
   order,
   onSort,
   orderBy,
-  rowCount,
+  // rowCount,
   headLabel,
-  numSelected,
-  onSelectAllRows,
+  // numSelected,
+  // onSelectAllRows,
 }: UserTableHeadProps) {
   return (
     <TableHead>
       <TableRow>
-        <TableCell padding="checkbox">
-          <Checkbox
-            indeterminate={numSelected > 0 && numSelected < rowCount}
-            checked={rowCount > 0 && numSelected === rowCount}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              onSelectAllRows(event.target.checked)
-            }
-          />
-        </TableCell>
-
+        {/* Bạn có thể bỏ phần checkbox này nếu không dùng */}
         {headLabel.map((headCell) => (
           <TableCell
             key={headCell.id}

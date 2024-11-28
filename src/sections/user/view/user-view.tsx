@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -27,18 +27,33 @@ import { UserTableHead } from '../user-table-head';
 import { TableEmptyRows } from '../table-empty-rows';
 import { UserTableToolbar } from '../user-table-toolbar';
 import { emptyRows, applyFilter, getComparator } from '../utils';
+import { getAllUser } from 'src/service/userService';
+import { getToken } from 'src/service/localStorage';
 
-import type { UserProps } from '../user-table-row';
+import type { UserProps, UserResponse } from '../user-table-row';
 
 // ----------------------------------------------------------------------
 
 export function UserView() {
+  const TOKEN = getToken();
+  const LIMIT = 20;
+  // const OFFSET = 0;
   const table = useTable();
 
   const [filterName, setFilterName] = useState('');
   const [openDialog, setOpenDialog] = useState(false);  // State to handle dialog visibility
+  const [users, setUsers] = useState<UserProps[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserProps[]>([]);
+  const [notFound, setNotFound] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại
+  const [hasMoreData, setHasMoreData] = useState(true); // Kiểm tra có dữ liệu hay không
+  const [loadingMore, setLoadingMore] = useState(false); // Trạng thái đang tải thêm
+  const [totalPage, setTotalPage] = useState(1);
+  
+  const [loading, setLoading] = useState(true); // Trạng thái loading
+  const [error, setError] = useState(false); // Trạng thái lỗi
+
   const [newUser, setNewUser] = useState({
-    customer_name: '',
     full_name: '',
     user_name: '',
     address: '',
@@ -47,18 +62,88 @@ export function UserView() {
     phone: '',
     gender: '',
     role: '',
-    is_active: '',
   });
 
-  const dataFiltered: UserProps[] = applyFilter({
-    inputData: _users,
-    comparator: getComparator(table.order, table.orderBy),
-    filterName,
+  const [paginaton, setPagination] = useState({
+    page: 0,               // Trang hiện tại
+    rowsPerPage: 10,       // Số dòng mỗi trang
+    order: 'asc',          // Thứ tự sắp xếp
+    orderBy: 'full_name',  // Cột sắp xếp
   });
 
-
-  const notFound = !dataFiltered.length && !!filterName;
-
+  const fetchAllUser = async (limit = LIMIT, page = currentPage) => {
+    if (TOKEN === null) {
+      alert("Vui lòng đăng nhập");
+      return;
+    }
+  
+    console.log("hiHi",page);
+    if (loadingMore) return; // Tránh gọi lại API khi đang tải dữ liệu
+    setLoadingMore(true);
+    
+    console.log("haha",page);
+    try {
+      setLoading(true);
+  
+      // Đảm bảo getAllUser trả về đúng kiểu dữ liệu
+      const data = await getAllUser(limit, page, TOKEN); // Áp dụng kiểu UserResponse
+      console.log(data)
+      if (data && data.users && Array.isArray(data.users)) {
+        setTotalPage(data.totalPages);
+        setCurrentPage(data.currentPage);
+  
+        // Chuyển đổi dữ liệu người dùng
+        const usersData = data.users.map((item: UserProps) => ({
+          ...item,
+          user_name: item.username || '',  // Chuyển từ 'username'
+          full_name: item.fullName || '',  // Chuyển từ 'fullName'
+          email: item.email || '',
+          phone: item.phoneNumber || '',  // Chuyển từ 'phoneNumber'
+          address: item.address || '',
+          role: item.role || '',          // Dữ liệu role từ API
+          gender: item.gender || '',      // Dữ liệu gender từ API
+          is_active: item.is_active,         // Dữ liệu active thành is_active
+        }));
+  
+        setUsers(usersData); // Cập nhật state với dữ liệu người dùng đã xử lý
+        
+      console.log("metqua")
+      setLoadingMore(false);
+        // console.log('UserData:', usersData);
+      } else {
+        console.error('API response does not contain valid users array.');
+      }
+    } catch (error) {
+      alert("Vui lòng lại sau");
+      setError(true);
+      console.error("Lỗi lấy dữ liệu: ", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+  
+  
+  useEffect(() => {
+    if (TOKEN) { // Kiểm tra thêm điều kiện loadingMore để tránh gọi lại khi đang tải
+      console.log("use", currentPage)
+      fetchAllUser(LIMIT, currentPage);
+    }
+  }, [currentPage]); // Gọi lại khi `TOKEN` hoặc `currentPage` thay đổi
+  
+  
+  useEffect(() => {
+    console.log("Filtering data...");
+    const dataFiltered: UserProps[] = applyFilter({
+      inputData: users,
+      filterName,
+    });
+    
+    console.log("Users before filter:", dataFiltered);
+    // Cập nhật lại filteredUsers và notFound
+    setFilteredUsers(dataFiltered);
+    setNotFound(!dataFiltered.length && !!filterName);
+  }, [users, filterName]); // Khi `users` hoặc `filterName` thay đổi, cập nhật `filteredUsers`
+  
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setNewUser({ ...newUser, [name]: value });
@@ -73,6 +158,16 @@ export function UserView() {
   const handleOpenDialog = () => setOpenDialog(true);
   const handleCloseDialog = () => setOpenDialog(false);
   const handleAddUser = () => setOpenDialog(false);
+
+
+   // Hiển thị loading hoặc lỗi nếu có
+   if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Quay lại sau...</div>;
+  }
   return (
     <DashboardContent>
       <Box display="flex" alignItems="center" mb={5}>
@@ -91,7 +186,6 @@ export function UserView() {
 
       <Card>
         <UserTableToolbar
-          numSelected={table.selected.length}
           filterName={filterName}
           onFilterName={(event: React.ChangeEvent<HTMLInputElement>) => {
             setFilterName(event.target.value);
@@ -105,67 +199,64 @@ export function UserView() {
               <UserTableHead
                 order={table.order}
                 orderBy={table.orderBy}
-                rowCount={_users.length}
-                numSelected={table.selected.length}
                 onSort={table.onSort}
-                onSelectAllRows={(checked) =>
-                  table.onSelectAllRows(
-                    checked,
-                    _users.map((user) => user.id)
-                  )
-                }
                 headLabel={[
-
-                  { id: 'customer_name', label: 'Customer_Name' },
-                  { id: 'address', label: 'Address' },
-                  { id: 'created_at', label: 'Created_at' },
+                  { id: 'full_name', label: 'Tên Đầy Đủ' },
+                  { id: 'username', label: 'Tên Đăng Nhập' },
                   { id: 'email', label: 'Email' },
-                  { id: 'full_name', label: 'Full_Name' },
-                  { id: 'gender', label: 'Gender' },
-                  // { id: 'is_active', label: 'Is_active' },
-                  // { id: 'password', label: 'Password' },
-                  // { id: 'phone', label: 'Phone' },
-                  // { id: 'role', label: 'Role' },
-                  // { id: 'user_name', label: 'User_name' },
-
-                  { id: '' },
+                  { id: 'phone', label: 'Số Điện Thoại' },
+                  { id: 'role', label: 'Vai Trò' },
+                  { id: 'gender', label: 'Giới Tính' },
+                  { id: 'is_active', label: 'Trạng Thái' },
                 ]}
               />
               <TableBody>
-                {dataFiltered
-                  .slice(
-                    table.page * table.rowsPerPage,
-                    table.page * table.rowsPerPage + table.rowsPerPage
-                  )
-                  .map((row) => (
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.slice(
+                    0,  // Cắt dữ liệu từ vị trí trang hiện tại
+                    LIMIT // Đến vị trí của trang kế tiếp
+                  ).map((row) => (
                     <UserTableRow
                       key={row.id}
                       row={row}
-                      selected={table.selected.includes(row.id)}
-                      onSelectRow={() => table.onSelectRow(row.id)}
+                      onSaveChanges={(updatedUser) => {
+                        console.log(updatedUser);  // Cập nhật thông tin người dùng
+                      }}    
                     />
-                  ))}
-
-                <TableEmptyRows
-                  height={68}
-                  emptyRows={emptyRows(table.page, table.rowsPerPage, _users.length)}
-                />
-
-                {notFound && <TableNoData searchQuery={filterName} />}
+                  ))
+                ) : (
+                  <TableNoData searchQuery={filterName} />
+                )}
               </TableBody>
+
+
+
+                {/* {notFound && <TableNoData searchQuery={filterName} />}
+              </TableBody> */}
             </Table>
           </TableContainer>
         </Scrollbar>
 
         <TablePagination
           component="div"
-          page={table.page}
-          count={_users.length}
-          rowsPerPage={table.rowsPerPage}
-          onPageChange={table.onChangePage}
-          rowsPerPageOptions={[5, 10, 25]}
-          onRowsPerPageChange={table.onChangeRowsPerPage}
+          page= {currentPage-1}  // Trang hiện tại
+          count={totalPage*LIMIT} // Tổng số trang
+          rowsPerPage={LIMIT}  // Số dòng mỗi trang
+          onPageChange={(_, newPage) => {
+            setCurrentPage(newPage+1);  // Cập nhật trang hiện tại
+            console.log("cur", currentPage)
+            console.log("new", newPage)
+            // fetchAllUser(LIMIT, currentPage+1);  // Gọi lại API để lấy dữ liệu cho trang mới
+          }}
+          rowsPerPageOptions={[15]}  // Cố định số dòng mỗi trang
+          onRowsPerPageChange={(event) => {
+            // Thực hiện khi thay đổi số dòng mỗi trang (có thể không cần thiết nếu bạn chỉ dùng 1 giá trị cố định)
+            // setRowsPerPage(parseInt(event.target.value, 10));
+          }}
         />
+
+
+
       </Card>
 
       {/* Dialog for Adding New User */}
@@ -173,15 +264,7 @@ export function UserView() {
         <DialogTitle>Add New User</DialogTitle>
         <DialogContent>
           <TextField
-            label="Customer Name"
-            fullWidth
-            margin="normal"
-            name="customer_name"
-            value={newUser.customer_name}
-            onChange={handleChange}
-          />
-          <TextField
-            label="Full Name"
+            label="Tên đầy đủ"
             fullWidth
             margin="normal"
             name="full_name"
@@ -189,7 +272,7 @@ export function UserView() {
             onChange={handleChange}
           />
           <TextField
-            label="Username"
+            label="Tên đăng nhập"
             fullWidth
             margin="normal"
             name="user_name"
@@ -197,7 +280,7 @@ export function UserView() {
             onChange={handleChange}
           />
           <TextField
-            label="Password"
+            label="Mật khẩu"
             type="password"
             fullWidth
             margin="normal"
@@ -214,7 +297,7 @@ export function UserView() {
             onChange={handleChange}
           />
           <TextField
-            label="Phone"
+            label="Số điện thoại"
             fullWidth
             margin="normal"
             name="phone"
@@ -222,7 +305,7 @@ export function UserView() {
             onChange={handleChange}
           />
           <TextField
-            label="Address"
+            label="Địa chỉ"
             fullWidth
             margin="normal"
             name="address"
@@ -238,10 +321,10 @@ export function UserView() {
             onChange={handleChange}
             SelectProps={{ native: true }}
           >
-            <option value="">Select Gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
+            <option value="">Chọn giới tính</option>
+            <option value="MALE">Nam</option>
+            <option value="FEMALE">Nữ</option>
+            <option value="OTHER">Khác</option>
           </TextField>
           <TextField
             select
@@ -252,18 +335,17 @@ export function UserView() {
             onChange={handleChange}
             SelectProps={{ native: true }}
           >
-            <option value="">Select Role</option>
-            <option value="admin">Admin</option>
-            <option value="user">User</option>
-            <option value="manager">Manager</option>
+            <option value="">Chọn vai trò</option>
+            <option value="ADMIN">Admin</option>
+            <option value="USER">User</option>
           </TextField>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog} color="primary">
-            Cancel
+            Hủy
           </Button>
           <Button onClick={handleAddUser} color="primary">
-            Add
+            Thêm
           </Button>
         </DialogActions>
       </Dialog>
@@ -277,7 +359,7 @@ export function useTable() {
   const [page, setPage] = useState(0);
   const [orderBy, setOrderBy] = useState('name');
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [selected, setSelected] = useState<string[]>([]);
+  // const [selected, setSelected] = useState<string[]>([]);
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
 
   const onSort = useCallback(
@@ -289,24 +371,24 @@ export function useTable() {
     [order, orderBy]
   );
 
-  const onSelectAllRows = useCallback((checked: boolean, newSelecteds: string[]) => {
-    if (checked) {
-      setSelected(newSelecteds);
-      return;
-    }
-    setSelected([]);
-  }, []);
+  // const onSelectAllRows = useCallback((checked: boolean, newSelecteds: string[]) => {
+  //   if (checked) {
+  //     setSelected(newSelecteds);
+  //     return;
+  //   }
+  //   setSelected([]);
+  // }, []);
 
-  const onSelectRow = useCallback(
-    (inputValue: string) => {
-      const newSelected = selected.includes(inputValue)
-        ? selected.filter((value) => value !== inputValue)
-        : [...selected, inputValue];
+  // const onSelectRow = useCallback(
+  //   (inputValue: string) => {
+  //     const newSelected = selected.includes(inputValue)
+  //       ? selected.filter((value) => value !== inputValue)
+  //       : [...selected, inputValue];
 
-      setSelected(newSelected);
-    },
-    [selected]
-  );
+  //     setSelected(newSelected);
+  //   },
+  //   [selected]
+  // );
 
   const onResetPage = useCallback(() => {
     setPage(0);
@@ -329,12 +411,12 @@ export function useTable() {
     order,
     onSort,
     orderBy,
-    selected,
+    // selected,
     rowsPerPage,
-    onSelectRow,
+    // onSelectRow,
     onResetPage,
     onChangePage,
-    onSelectAllRows,
+    // onSelectAllRows,
     onChangeRowsPerPage,
   };
 }
