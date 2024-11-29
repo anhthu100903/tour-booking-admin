@@ -30,15 +30,15 @@ const createUser = async (userData, token) => {
 
 
 /**
- * Cập nhật thông tin người dùng (myInfo).
+ * Cập nhật thông tin người dùng.
  * @param {string} token - Token xác thực người dùng
  * @param {number} id - ID của người dùng
  * @param {object} userData - Dữ liệu người dùng cần cập nhật
  * @returns {Promise<object>} - Kết quả cập nhật thông tin người dùng
  */
-const updateUserInfo = async (token, userData) => {
+const updateUser = async (token, userData, username) => {
   try {
-    const response = await fetch(`${BASE_URL}`, {
+    const response = await fetch(`${BASE_URL}/${username}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json", // Định nghĩa Content-Type là JSON
@@ -103,6 +103,6 @@ const getAllUser = async (limit, offset, token) => {
 
 export {
   createUser,
-  updateUserInfo,
+  updateUser,
   getAllUser
 };

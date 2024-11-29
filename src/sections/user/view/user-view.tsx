@@ -31,7 +31,7 @@ import { UserTableHead } from '../user-table-head';
 import { TableEmptyRows } from '../table-empty-rows';
 import { UserTableToolbar } from '../user-table-toolbar';
 import { emptyRows, applyFilter, getComparator } from '../utils';
-import { getAllUser, createUser } from 'src/service/userService';
+import { getAllUser, createUser, updateUser } from 'src/service/userService';
 import { getToken } from 'src/service/localStorage';
 
 import type { UserProps, UserResponse } from '../user-table-row';
@@ -76,6 +76,7 @@ export function UserView() {
     phone: '',
     gender: '',
     role: '',
+    isActive: true,
   });
 
   const [paginaton, setPagination] = useState({
@@ -90,12 +91,8 @@ export function UserView() {
       alert("Vui lòng đăng nhập");
       return;
     }
-  
-    console.log("hiHi",page);
     if (loadingMore) return; // Tránh gọi lại API khi đang tải dữ liệu
     setLoadingMore(true);
-    
-    console.log("haha",page);
     try {
       setLoading(true);
   
@@ -116,12 +113,11 @@ export function UserView() {
           address: item.address || '',
           role: item.role || '',          // Dữ liệu role từ API
           gender: item.gender || '',      // Dữ liệu gender từ API
-          is_active: item.is_active,         // Dữ liệu active thành is_active
+          is_active: item.active,         // Dữ liệu active thành is_active
         }));
   
         setUsers(usersData); // Cập nhật state với dữ liệu người dùng đã xử lý
         
-      console.log("metqua")
       setLoadingMore(false);
         // console.log('UserData:', usersData);
       } else {
@@ -139,7 +135,6 @@ export function UserView() {
   
   useEffect(() => {
     if (TOKEN) { // Kiểm tra thêm điều kiện loadingMore để tránh gọi lại khi đang tải
-      console.log("use", currentPage)
       fetchAllUser(LIMIT, currentPage);
     }
   }, [currentPage]); // Gọi lại khi `TOKEN` hoặc `currentPage` thay đổi
@@ -150,8 +145,6 @@ export function UserView() {
       inputData: users,
       filterName,
     });
-    
-    console.log("Users before filter:", dataFiltered);
     // Cập nhật lại filteredUsers và notFound
     setFilteredUsers(dataFiltered);
     setNotFound(!dataFiltered.length && !!filterName);
@@ -195,13 +188,38 @@ export function UserView() {
         phone: '',
         gender: '',
         role: '',
+        isActive: true,
       })
       setOpenDialog(false);  // Close dialog after submission
     }
   };
 
-  const hanndleUpdateUser = () => {
-
+  const handleUpdateUser = async (userUpdate) => {
+    setLoading(true);
+    try{
+      const user = {
+        username: userUpdate.user_name,
+        fullName: userUpdate.full_name,
+        email: userUpdate.email,
+        phoneNumber: userUpdate.phone,
+        address: userUpdate.address,
+        gender: userUpdate.gender,
+        role: userUpdate.role,
+        isActive: userUpdate.is_active,
+      }
+      console.log(userUpdate.is_active)
+      const data = await updateUser(TOKEN, user, user.username);
+      // console.log(user);
+      setSnackBarMessage("Cập nhật thành công");
+      setSnackBarOpen(true);
+      fetchAllUser();
+    }catch (error) {
+      console.log(error);
+      setSnackBarMessage("Cập nhật thất bại");
+      setSnackBarOpen(true);
+    }finally{
+      setLoading(false);
+    }
   }
 
   const handleOpenDialog = () => setOpenDialog(true);
@@ -237,7 +255,7 @@ export function UserView() {
     <DashboardContent>
       <Box display="flex" alignItems="center" mb={5}>
         <Typography variant="h4" flexGrow={1}>
-          Users
+          Tài khoản
         </Typography>
         <Button
           variant="contained"
@@ -246,7 +264,7 @@ export function UserView() {
           // onClick={handleOpenDialog}  // Open dialog when clicked
           onClick={handleOpenDialog}
         >
-          New User
+          Thêm
         </Button>
       </Box>
 
@@ -285,7 +303,10 @@ export function UserView() {
                     <UserTableRow
                       key={row.id}
                       row={row}
-                      onSaveChanges={hanndleUpdateUser}    
+                      onSaveChanges={(updatedUser) => {
+                        // console.log(updatedUser);
+                        handleUpdateUser(updatedUser);
+                      }}      
                     />
                   ))
                 ) : (
@@ -308,8 +329,6 @@ export function UserView() {
           rowsPerPage={LIMIT}  // Số dòng mỗi trang
           onPageChange={(_, newPage) => {
             setCurrentPage(newPage+1);  // Cập nhật trang hiện tại
-            console.log("cur", currentPage)
-            console.log("new", newPage)
             // fetchAllUser(LIMIT, currentPage+1);  // Gọi lại API để lấy dữ liệu cho trang mới
           }}
           rowsPerPageOptions={[15]}  // Cố định số dòng mỗi trang

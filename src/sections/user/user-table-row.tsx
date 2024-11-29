@@ -79,7 +79,12 @@ export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //sel
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
-    setEditUser({ ...editUser, [name]: value });
+    // Kiểm tra nếu name là 'is_active', thì cập nhật state theo cách đặc biệt
+    setEditUser((prevState) => ({
+      ...prevState,
+      [name]: name === 'is_active' ? value === '1' : value, // Chuyển '1' thành true, '0' thành false cho 'is_active'
+    }));
+    console.log(name, value)
   };
 
   const handleSave = () => {
@@ -152,10 +157,10 @@ export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //sel
             <Iconify icon="solar:info-bold" />
             Xem Chi Tiết
           </MenuItem>
-          <MenuItem onClick={handleClosePopover} sx={{ color: 'error.main' }}>
+          {/* <MenuItem onClick={handleClosePopover} sx={{ color: 'error.main' }}>
             <Iconify icon="solar:trash-bin-trash-bold" />
             Xóa
-          </MenuItem>
+          </MenuItem> */}
         </MenuList>
       </Popover>
 
@@ -235,7 +240,7 @@ export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //sel
             fullWidth
             margin="normal"
             name="is_active"
-            value={editUser.is_active ? '1' : '0'} // Chuyển đổi boolean thành chuỗi
+            value={editUser.is_active ? 1 : 0} // Chuyển đổi boolean thành chuỗi
             onChange={handleChange}
             SelectProps={{ native: true }}
           >
