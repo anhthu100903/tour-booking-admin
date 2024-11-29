@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -24,17 +24,32 @@ import {
   DialogContentText,
   DialogTitle,
 } from '@mui/material';
+import { getToken } from 'src/service/localStorage';
+import { getAllTours } from 'src/service/tourService';
 
 type Tour = {
-  id: number;
-  tripName: string;
-  location: string;
-  price: string;
-  startDate: string;
-  days: number;
-  tourType: string;
+  id: number | string;
+  name: string;
+  description: string,
+  destinationLocation: string;
+  departureLocation: string;
+  numberOfDays: string;
+  tourTypeDTO: TypeDTO | null;
   images?: File[];  // Optional: for handling image uploads
 };
+
+type TypeDTO = {
+  id: string | number;
+  name: string;
+  active: boolean;
+}
+
+type Result = {
+  totalPages: number;
+  currentPage: number;
+  totalElements: number;
+  tours: Array<Tour>;
+}
 
 const mockData: Tour[] = [
   {
@@ -70,22 +85,29 @@ const CustomEditIcon = () => (
 );
 
 export function TourView() {
+  const TOKEN = getToken();
+  const LIMIT = 20;
   const [filterName, setFilterName] = useState('');
+  const [filteredData, setFilterData] =  useState<Tour[]>([]);
   const [openForm, setOpenForm] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<Tour>({
     id: 0,
-    tripName: '',
-    location: '',
-    price: '',
-    startDate: '',
-    days: 0,
-    tourType: '',
+    name: '',
+    description: '',
+    destinationLocation: '',
+    departureLocation: '',
+    numberOfDays: '',
+    tourTypeDTO: null,
     images: [],
   });
   const [data, setData] = useState(mockData);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
+  const [totalPage, setTotalPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại
+  const [totalElements, setTotalElements] = useState(1);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -105,11 +127,11 @@ export function TourView() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.price || isNaN(Number(formData.price))) {
-      alert("Giá không hợp lệ!");
-      return;
-    }
-    if (!formData.days || isNaN(Number(formData.days))) {
+    // if (!formData.price || isNaN(Number(formData.price))) {
+    //   alert("Giá không hợp lệ!");
+    //   return;
+    // }
+    if (!formData.numberOfDays || isNaN(Number(formData.numberOfDays))) {
       alert("Số ngày không hợp lệ!");
       return;
     }
@@ -131,17 +153,19 @@ export function TourView() {
   const resetForm = () => {
     setFormData({
       id: 0,
-      tripName: '',
-      location: '',
-      price: '',
-      startDate: '',
-      days: 0,
-      tourType: '',
+      name: '',
+      description: '',
+      destinationLocation: '',
+      departureLocation: '',
+      // price: '',
+      // startDate: '',
+      numberOfDays: '',
+      tourTypeDTO: null,
       images: [],
     });
   };
 
-  const handleEdit = (id: number) => {
+  const handleEdit = (id: number | string) => {
     const editTour = data.find((item) => item.id === id);
     if (editTour) {
       setFormData({
@@ -152,7 +176,7 @@ export function TourView() {
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: number | string) => {
     setOpenDeleteDialog(true);
     setDeleteId(id);
   };
@@ -168,13 +192,63 @@ export function TourView() {
     setDeleteId(null);
   };
 
-  const filteredData = data.filter((item) =>
-    item.tripName.toLowerCase().includes(filterName.toLowerCase())
-  );
+
 
   const handlePageChange = (event: React.MouseEvent<HTMLButtonElement>, newPage: number) => {
     setPage(newPage);
   };
+
+
+  const fetchAllTour = async (limit = LIMIT, page = currentPage) => {
+    if (TOKEN === null) {
+      alert("Vui lòng đăng nhập");
+      return;
+    }
+    try{
+      setLoading(true);
+      const data: Result = await getAllTours(limit, page, TOKEN)
+      if(data && data.tours && Array.isArray(data.tours)){
+        setTotalPage(data.totalPages);
+        setCurrentPage(data.currentPage);
+        setTotalElements(data.totalElements);
+
+        const toursData: Tour[] = data.tours.map((tour) => ({
+          id: tour.id,
+          name: tour.name || '',
+          description: tour.description || '',
+          destinationLocation: tour.destinationLocation || '',
+          departureLocation: tour.departureLocation || '',
+          numberOfDays: tour.numberOfDays || 0,  // Ensure it's a number (or 0 as fallback)
+          tourTypeDTO: tour.tourTypeDTO || null
+        }));
+        console.log(toursData);
+        setData(toursData);
+      }
+    }catch (error) {
+      console.log(error);
+    }finally{
+      setLoading(false)
+    }
+  }
+
+  // Trong useEffect, lọc dữ liệu khi filterName thay đổi
+  useEffect(() => {
+    // Nếu filterName không có giá trị, không lọc và giữ nguyên data
+    const filteredTour = data.filter((item) =>
+      item.name && item.name.toLowerCase().includes(filterName.toLowerCase())  // Add a check to ensure `name` is a string
+    );
+    setFilterData(filteredTour);
+  }, [filterName, data]);
+
+  useEffect(()  => {
+    fetchAllTour(LIMIT, currentPage, TOKEN)
+  }, [TOKEN]);
+
+  
+   // Hiển thị loading hoặc lỗi nếu có
+  if (loading) {
+  return <div>Loading...</div>;
+  }
 
   return (
     <Box p={4}>
@@ -188,7 +262,7 @@ export function TourView() {
           startIcon={<CustomEditIcon />}
           onClick={() => setOpenForm(true)}
         >
-          New Tour
+          Thêm tour
         </Button>
       </Box>
 
@@ -206,56 +280,64 @@ export function TourView() {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell>STT</TableCell>
                 <TableCell>Tên Tour</TableCell>
-                <TableCell>Địa điểm</TableCell>
-                <TableCell>Giá</TableCell>
-                <TableCell>Ngày khởi hành</TableCell>
-                <TableCell>Số ngày</TableCell>
+                <TableCell>Điểm khởi hành</TableCell>
+                <TableCell>Điểm đến</TableCell>
+                <TableCell>Số ngày đi</TableCell>
                 <TableCell>Loại Tour</TableCell>
                 <TableCell>Hành động</TableCell>
               </TableRow>
             </TableHead>
+
             <TableBody>
-              {filteredData.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>{row.tripName}</TableCell>
-                  <TableCell>{row.location}</TableCell>
-                  <TableCell>{row.price}</TableCell>
-                  <TableCell>{row.startDate}</TableCell>
-                  <TableCell>{row.days}</TableCell>
-                  <TableCell>{row.tourType}</TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => handleEdit(row.id)} color="primary">
-                      <CustomEditIcon />
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(row.id)} color="error">
-                      <CustomDeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredData.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    Không tìm thấy kết quả.
-                  </TableCell>
-                </TableRow>
-              )}
+            {filteredData.length > 0 ? (
+              // Paginate the data based on current page and rows per page
+              filteredData
+                .slice(0, LIMIT) // Slicing data based on current page
+                .map((row, index) => (
+                  <TableRow key={row.id}>
+                    <TableCell>{index+1}</TableCell>
+                    <TableCell sx={{ width: '200px' }}>{row.name}</TableCell>
+                    <TableCell>{row.departureLocation}</TableCell>
+                    <TableCell>{row.destinationLocation}</TableCell>
+                    <TableCell>{row.numberOfDays}</TableCell>
+                    <TableCell>{row.tourTypeDTO?.name || 'Không xác định'}</TableCell> {/* Fallback value */}
+                    <TableCell>
+                      <IconButton onClick={() => handleEdit(row.id)} color="primary">
+                        <CustomEditIcon />
+                      </IconButton>
+                      <IconButton onClick={() => handleDelete(row.id)} color="error">
+                        <CustomDeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  Không tìm thấy kết quả.
+                </TableCell>
+              </TableRow>
+            )}
             </TableBody>
           </Table>
         </TableContainer>
+
         <TablePagination
           component="div"
-          count={filteredData.length}
-          rowsPerPage={5}
-          page={page}
-          onPageChange={handlePageChange}
-          rowsPerPageOptions={[5, 10, 25]}
+          count={totalElements}
+          rowsPerPage={LIMIT}
+          page={currentPage-1}
+          onPageChange={(_, newpage) => {
+            setCurrentPage(newpage+1);
+          } }
+          rowsPerPageOptions={[20]}
         />
       </Card>
 
       {/* Modal Form */}
-      <Modal open={openForm} onClose={() => setOpenForm(false)}>
+     <Modal open={openForm} onClose={() => setOpenForm(false)}>
         <Box
           sx={{
             position: 'absolute',
@@ -279,7 +361,7 @@ export function TourView() {
                   variant="outlined"
                   label="Tên Tour"
                   name="tripName"
-                  value={formData.tripName}
+                  value={formData.name}
                   onChange={handleInputChange}
                   required
                 />
@@ -290,7 +372,7 @@ export function TourView() {
                   variant="outlined"
                   label="Địa điểm"
                   name="location"
-                  value={formData.location}
+                  value={formData.departureLocation}
                   onChange={handleInputChange}
                   required
                 />
@@ -301,7 +383,7 @@ export function TourView() {
                   variant="outlined"
                   label="Giá"
                   name="price"
-                  value={formData.price}
+                  value={formData.destinationLocation}
                   onChange={handleInputChange}
                   required
                 />
@@ -313,7 +395,7 @@ export function TourView() {
                   label="Ngày khởi hành"
                   name="startDate"
                   type="date"
-                  value={formData.startDate}
+                  value={formData.numberOfDays}
                   onChange={handleInputChange}
                   required
                   InputLabelProps={{
@@ -321,23 +403,23 @@ export function TourView() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12}>
+              {/* <Grid item xs={12}>
                 <TextField
                   fullWidth
                   variant="outlined"
                   label="Số ngày"
                   name="days"
                   type="number"
-                  value={formData.days}
+                  value={formData.tourTypeDTO?.name}
                   onChange={handleInputChange}
                   required
                 />
-              </Grid>
+              </Grid> */}
               <Grid item xs={12}>
                 <Select
                   fullWidth
                   name="tourType"
-                  value={formData.tourType}
+                  value={formData.tourTypeDTO?.name}
                   onChange={handleSelectChange}
                   displayEmpty
                   required

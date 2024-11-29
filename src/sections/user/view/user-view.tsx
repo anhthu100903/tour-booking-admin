@@ -331,7 +331,7 @@ export function UserView() {
             setCurrentPage(newPage+1);  // Cập nhật trang hiện tại
             // fetchAllUser(LIMIT, currentPage+1);  // Gọi lại API để lấy dữ liệu cho trang mới
           }}
-          rowsPerPageOptions={[15]}  // Cố định số dòng mỗi trang
+          rowsPerPageOptions={[20]}  // Cố định số dòng mỗi trang
           onRowsPerPageChange={(event) => {
             // Thực hiện khi thay đổi số dòng mỗi trang (có thể không cần thiết nếu bạn chỉ dùng 1 giá trị cố định)
             // setRowsPerPage(parseInt(event.target.value, 10));

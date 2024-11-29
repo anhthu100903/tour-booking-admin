@@ -74,7 +74,7 @@ export function TourTableRow({ row, selected, onSelectRow }: TourTableRowProps) 
 
         <TableCell align="right">
           <IconButton onClick={handleOpenPopover}>
-            <Iconify icon="eva:more-vertical-fill" />
+          <Iconify icon="eva:more-vertical-fill" />
           </IconButton>
         </TableCell>
       </TableRow>
@@ -104,12 +104,17 @@ export function TourTableRow({ row, selected, onSelectRow }: TourTableRowProps) 
         >
           <MenuItem onClick={handleClosePopover}>
             <Iconify icon="solar:pen-bold" />
-            Edit
+            Chỉnh sửa
           </MenuItem>
 
           <MenuItem onClick={handleClosePopover} sx={{ color: 'error.main' }}>
             <Iconify icon="solar:trash-bin-trash-bold" />
-            Delete
+            Thêm ngày khởi hành
+          </MenuItem>
+          
+          <MenuItem onClick={handleClosePopover} sx={{ color: 'error.main' }}>
+            <Iconify icon="solar:trash-bin-trash-bold" />
+            Thêm ảnh
           </MenuItem>
         </MenuList>
       </Popover>
