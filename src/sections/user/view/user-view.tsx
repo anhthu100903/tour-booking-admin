@@ -13,6 +13,10 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
+import {
+  Snackbar,
+  Alert,
+} from "@mui/material";
 
 
 import { _users } from 'src/_mock';
@@ -27,7 +31,7 @@ import { UserTableHead } from '../user-table-head';
 import { TableEmptyRows } from '../table-empty-rows';
 import { UserTableToolbar } from '../user-table-toolbar';
 import { emptyRows, applyFilter, getComparator } from '../utils';
-import { getAllUser } from 'src/service/userService';
+import { getAllUser, createUser } from 'src/service/userService';
 import { getToken } from 'src/service/localStorage';
 
 import type { UserProps, UserResponse } from '../user-table-row';
@@ -52,6 +56,16 @@ export function UserView() {
   
   const [loading, setLoading] = useState(true); // Trạng thái loading
   const [error, setError] = useState(false); // Trạng thái lỗi
+
+  const [snackBarOpen, setSnackBarOpen] = useState(false);
+  const [snackBarMessage, setSnackBarMessage] = useState("");
+  const handleCloseSnackBar = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+
+    setSnackBarOpen(false);
+  };
 
   const [newUser, setNewUser] = useState({
     full_name: '',
@@ -132,7 +146,6 @@ export function UserView() {
   
   
   useEffect(() => {
-    console.log("Filtering data...");
     const dataFiltered: UserProps[] = applyFilter({
       inputData: users,
       filterName,
@@ -149,11 +162,47 @@ export function UserView() {
     setNewUser({ ...newUser, [name]: value });
   };
 
-  const handleSubmit = () => {
-    // Handle form submission (e.g., add user to the list or send data to API)
-    console.log(newUser);
-    setOpenDialog(false);  // Close dialog after submission
+  const handleSubmit = async () => {
+    setOpenDialog(true);
+    try{
+      setLoading(true);
+      const user = {
+        username: newUser.user_name,
+        fullName: newUser.full_name,
+        email: newUser.email,
+        phoneNumber: newUser.phone,
+        password: newUser.password,
+        address: newUser.address,
+        gender: newUser.gender,
+        role: newUser.role,
+        isActive: true,
+      }
+      const data = await createUser(user, TOKEN);
+      setLoading(false);
+      setSnackBarMessage("Thêm người dùng thành công!");
+      setSnackBarOpen(true);
+    }catch(error){
+      console.log(error);
+      setSnackBarMessage("Thêm người dùng thất bại!");
+      setSnackBarOpen(true);
+    }finally{
+      setNewUser({
+        full_name: '',
+        user_name: '',
+        address: '',
+        password: '',
+        email: '',
+        phone: '',
+        gender: '',
+        role: '',
+      })
+      setOpenDialog(false);  // Close dialog after submission
+    }
   };
+
+  const hanndleUpdateUser = () => {
+
+  }
 
   const handleOpenDialog = () => setOpenDialog(true);
   const handleCloseDialog = () => setOpenDialog(false);
@@ -169,6 +218,22 @@ export function UserView() {
     return <div>Quay lại sau...</div>;
   }
   return (
+    <>
+    <Snackbar
+        open={snackBarOpen}
+        onClose={handleCloseSnackBar}
+        autoHideDuration={6000}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseSnackBar}
+          severity="error"
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackBarMessage}
+        </Alert>
+      </Snackbar>
     <DashboardContent>
       <Box display="flex" alignItems="center" mb={5}>
         <Typography variant="h4" flexGrow={1}>
@@ -178,7 +243,8 @@ export function UserView() {
           variant="contained"
           color="inherit"
           startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={handleOpenDialog}  // Open dialog when clicked
+          // onClick={handleOpenDialog}  // Open dialog when clicked
+          onClick={handleOpenDialog}
         >
           New User
         </Button>
@@ -219,9 +285,7 @@ export function UserView() {
                     <UserTableRow
                       key={row.id}
                       row={row}
-                      onSaveChanges={(updatedUser) => {
-                        console.log(updatedUser);  // Cập nhật thông tin người dùng
-                      }}    
+                      onSaveChanges={hanndleUpdateUser}    
                     />
                   ))
                 ) : (
@@ -260,7 +324,8 @@ export function UserView() {
       </Card>
 
       {/* Dialog for Adding New User */}
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
+      {openDialog && 
+        <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>Add New User</DialogTitle>
         <DialogContent>
           <TextField
@@ -344,12 +409,15 @@ export function UserView() {
           <Button onClick={handleCloseDialog} color="primary">
             Hủy
           </Button>
-          <Button onClick={handleAddUser} color="primary">
+          <Button onClick={handleSubmit} color="primary">
             Thêm
           </Button>
         </DialogActions>
-      </Dialog>
+        </Dialog>
+      }
+      
     </DashboardContent >
+    </>
   );
 }
 

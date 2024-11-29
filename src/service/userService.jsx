@@ -2,14 +2,30 @@ import axios from 'axios';
 
 const BASE_URL = 'http://localhost:8080/tour/users';
 
-  // Hàm để thêm người dùng mới
-const createUser = async (userData) => {
-    try {
-      const response = await axios.post(BASE_URL, userData);
-      return response.data; // Trả về dữ liệu nếu thành công
-    } catch (error) {
-      throw error.response?.data?.message || 'Lỗi khi gọi API'; // Ném lỗi để xử lý ở nơi gọi
+ /**
+ * Hàm để thêm người dùng mới
+ * @param {object} userData - Dữ liệu người dùng cần thêm
+ * @param {string} token - Token xác thực người dùng
+ * @returns {Promise<object>} - Dữ liệu người dùng sau khi thêm
+ */
+const createUser = async (userData, token) => {
+  try {
+    const headers = {
+      "Content-Type": "application/json", // Định nghĩa Content-Type là JSON
+    };
+
+    // Nếu có token, thêm Authorization header
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
+
+    const response = await axios.post(BASE_URL, userData, { headers });
+
+    return response.data; // Trả về dữ liệu người dùng vừa tạo
+  } catch (error) {
+    console.error("Error creating user:", error);
+    throw error.response?.data?.message || "Lỗi khi tạo người dùng"; // Trả về thông báo lỗi
+  }
 };
 
 
