@@ -53,4 +53,7 @@
     padding-left: 0;
     line-height: 18px;
   }
+  .summary-error {
+    display: none !important;
+  }  
 }

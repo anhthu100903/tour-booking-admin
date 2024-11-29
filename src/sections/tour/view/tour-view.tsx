@@ -26,17 +26,23 @@ import {
 } from '@mui/material';
 import { getToken } from 'src/service/localStorage';
 import { getAllTours } from 'src/service/tourService';
+import { getAllTourTypes } from 'src/service/tourTypeService';
 
 type Tour = {
   id: number | string;
   name: string;
-  description: string,
+  description: string;
   destinationLocation: string;
   departureLocation: string;
   numberOfDays: string;
   tourTypeDTO: TypeDTO | null;
-  images?: File[];  // Optional: for handling image uploads
+  images?: File[];
 };
+
+type tourType = {
+  id: number | string;
+  name: string;
+}
 
 type TypeDTO = {
   id: string | number;
@@ -50,27 +56,6 @@ type Result = {
   totalElements: number;
   tours: Array<Tour>;
 }
-
-const mockData: Tour[] = [
-  {
-    id: 1,
-    tripName: 'Tour Đà Lạt',
-    location: 'Đà Lạt',
-    price: '2000000',
-    startDate: '2024-12-01',
-    days: 3,
-    tourType: 'Nội địa',
-  },
-  {
-    id: 2,
-    tripName: 'Tour Nha Trang',
-    location: 'Nha Trang',
-    price: '3000000',
-    startDate: '2024-12-10',
-    days: 5,
-    tourType: 'Nội địa',
-  },
-];
 
 const CustomDeleteIcon = () => (
   <SvgIcon>
@@ -86,9 +71,9 @@ const CustomEditIcon = () => (
 
 export function TourView() {
   const TOKEN = getToken();
-  const LIMIT = 20;
+  const LIMIT = 10;
   const [filterName, setFilterName] = useState('');
-  const [filteredData, setFilterData] =  useState<Tour[]>([]);
+  const [filteredData, setFilterData] = useState<Tour[]>([]);
   const [openForm, setOpenForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<Tour>({
@@ -101,22 +86,25 @@ export function TourView() {
     tourTypeDTO: null,
     images: [],
   });
-  const [data, setData] = useState(mockData);
+  const [data, setData] = useState<Tour[]>([]);
+  const [tourTypeData, setTourTypeData] = useState<tourType[]>([]);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [page, setPage] = useState(0);
-  const [totalPage, setTotalPage] = useState(1);
-  const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại
-  const [totalElements, setTotalElements] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: name === 'price' ? value : value });
+    setFormData({ ...formData, [name]: value });
   };
 
-  const handleSelectChange = (e: React.ChangeEvent<{ name?: string; value: string }>) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name || '']: value });
+  const handleSelectChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+    const { value } = e.target;
+    const selectedType = tourTypeData.find(type => type.id === value);
+    setFormData(prevState => ({
+      ...prevState,
+      tourTypeDTO: selectedType || null, // Cập nhật với đối tượng tourTypeDTO
+    }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,26 +115,17 @@ export function TourView() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // if (!formData.price || isNaN(Number(formData.price))) {
-    //   alert("Giá không hợp lệ!");
-    //   return;
-    // }
-    if (!formData.numberOfDays || isNaN(Number(formData.numberOfDays))) {
-      alert("Số ngày không hợp lệ!");
-      return;
-    }
-
     if (formData.id !== 0) {
-      setData((prevData) =>
-        prevData.map((item) => (item.id === formData.id ? { ...formData } : item))
+      setData(prevData =>
+        prevData.map(item => (item.id === formData.id ? { ...formData } : item))
       );
     } else {
-      setData((prevData) => [
+      setData(prevData => [
         ...prevData,
         { ...formData, id: prevData.length + 1 },
       ]);
     }
-    setOpenForm(false); // Close form
+    setOpenForm(false);
     resetForm();
   };
 
@@ -157,8 +136,6 @@ export function TourView() {
       description: '',
       destinationLocation: '',
       departureLocation: '',
-      // price: '',
-      // startDate: '',
       numberOfDays: '',
       tourTypeDTO: null,
       images: [],
@@ -166,13 +143,10 @@ export function TourView() {
   };
 
   const handleEdit = (id: number | string) => {
-    const editTour = data.find((item) => item.id === id);
+    const editTour = data.find(item => item.id === id);
     if (editTour) {
-      setFormData({
-        ...editTour,
-        images: [], // Reset images if not needed
-      });
-      setOpenForm(true); // Open the form for editing
+      setFormData(editTour);
+      setOpenForm(true);
     }
   };
 
@@ -182,7 +156,7 @@ export function TourView() {
   };
 
   const confirmDelete = () => {
-    setData((prevData) => prevData.filter((item) => item.id !== deleteId));
+    setData(prevData => prevData.filter(item => item.id !== deleteId));
     setOpenDeleteDialog(false);
     setDeleteId(null);
   };
@@ -192,62 +166,57 @@ export function TourView() {
     setDeleteId(null);
   };
 
-
-
-  const handlePageChange = (event: React.MouseEvent<HTMLButtonElement>, newPage: number) => {
-    setPage(newPage);
+  const handlePageChange = (event: unknown, newPage: number) => {
+    setCurrentPage(newPage + 1);
   };
-
 
   const fetchAllTour = async (limit = LIMIT, page = currentPage) => {
     if (TOKEN === null) {
       alert("Vui lòng đăng nhập");
       return;
     }
-    try{
+    try {
       setLoading(true);
-      const data: Result = await getAllTours(limit, page, TOKEN)
-      if(data && data.tours && Array.isArray(data.tours)){
-        setTotalPage(data.totalPages);
-        setCurrentPage(data.currentPage);
-        setTotalElements(data.totalElements);
-
-        const toursData: Tour[] = data.tours.map((tour) => ({
-          id: tour.id,
-          name: tour.name || '',
-          description: tour.description || '',
-          destinationLocation: tour.destinationLocation || '',
-          departureLocation: tour.departureLocation || '',
-          numberOfDays: tour.numberOfDays || 0,  // Ensure it's a number (or 0 as fallback)
-          tourTypeDTO: tour.tourTypeDTO || null
-        }));
-        console.log(toursData);
-        setData(toursData);
+      const tourData: Result = await getAllTours(limit, page, TOKEN);
+      if (tourData.tours && Array.isArray(tourData.tours)) {
+        setTotalElements(tourData.totalElements);
+        setData(tourData.tours);
       }
-    }catch (error) {
+    } catch (error) {
       console.log(error);
-    }finally{
-      setLoading(false)
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  // Trong useEffect, lọc dữ liệu khi filterName thay đổi
+  const fetchAllTourTypes = async () => {
+    if (TOKEN === null) {
+      alert("Vui lòng đăng nhập");
+      return;
+    }
+
+    try {
+      const tourTypeResult: tourType[] = await getAllTourTypes(TOKEN);
+      setTourTypeData(tourTypeResult);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
-    // Nếu filterName không có giá trị, không lọc và giữ nguyên data
-    const filteredTour = data.filter((item) =>
-      item.name && item.name.toLowerCase().includes(filterName.toLowerCase())  // Add a check to ensure `name` is a string
+    fetchAllTour(LIMIT, currentPage);
+    fetchAllTourTypes();
+  }, [currentPage, TOKEN]);
+
+  useEffect(() => {
+    const filteredTour = data.filter(item =>
+      item.name && item.name.toLowerCase().includes(filterName.toLowerCase())
     );
     setFilterData(filteredTour);
   }, [filterName, data]);
 
-  useEffect(()  => {
-    fetchAllTour(LIMIT, currentPage, TOKEN)
-  }, [TOKEN]);
-
-  
-   // Hiển thị loading hoặc lỗi nếu có
   if (loading) {
-  return <div>Loading...</div>;
+    return <div>Loading...</div>;
   }
 
   return (
@@ -282,6 +251,7 @@ export function TourView() {
               <TableRow>
                 <TableCell>STT</TableCell>
                 <TableCell>Tên Tour</TableCell>
+                <TableCell>Mô tả</TableCell>
                 <TableCell>Điểm khởi hành</TableCell>
                 <TableCell>Điểm đến</TableCell>
                 <TableCell>Số ngày đi</TableCell>
@@ -289,20 +259,17 @@ export function TourView() {
                 <TableCell>Hành động</TableCell>
               </TableRow>
             </TableHead>
-
             <TableBody>
-            {filteredData.length > 0 ? (
-              // Paginate the data based on current page and rows per page
-              filteredData
-                .slice(0, LIMIT) // Slicing data based on current page
-                .map((row, index) => (
+              {filteredData.length > 0 ? (
+                filteredData.map((row, index) => (
                   <TableRow key={row.id}>
-                    <TableCell>{index+1}</TableCell>
+                    <TableCell>{(currentPage - 1) * LIMIT + index + 1}</TableCell>
                     <TableCell sx={{ width: '200px' }}>{row.name}</TableCell>
+                    <TableCell>{row.description}</TableCell>
                     <TableCell>{row.departureLocation}</TableCell>
                     <TableCell>{row.destinationLocation}</TableCell>
                     <TableCell>{row.numberOfDays}</TableCell>
-                    <TableCell>{row.tourTypeDTO?.name || 'Không xác định'}</TableCell> {/* Fallback value */}
+                    <TableCell>{row.tourTypeDTO?.name || 'Không xác định'}</TableCell>
                     <TableCell>
                       <IconButton onClick={() => handleEdit(row.id)} color="primary">
                         <CustomEditIcon />
@@ -313,13 +280,13 @@ export function TourView() {
                     </TableCell>
                   </TableRow>
                 ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  Không tìm thấy kết quả.
-                </TableCell>
-              </TableRow>
-            )}
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    Không tìm thấy kết quả.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -328,16 +295,14 @@ export function TourView() {
           component="div"
           count={totalElements}
           rowsPerPage={LIMIT}
-          page={currentPage-1}
-          onPageChange={(_, newpage) => {
-            setCurrentPage(newpage+1);
-          } }
-          rowsPerPageOptions={[20]}
+          page={currentPage - 1}
+          onPageChange={handlePageChange}
+          rowsPerPageOptions={[10]}
         />
       </Card>
 
       {/* Modal Form */}
-     <Modal open={openForm} onClose={() => setOpenForm(false)}>
+      <Modal open={openForm} onClose={() => setOpenForm(false)}>
         <Box
           sx={{
             position: 'absolute',
@@ -354,13 +319,13 @@ export function TourView() {
         >
           <Typography variant="h5">{formData.id ? 'Chỉnh sửa Tour' : 'Tạo mới Tour'}</Typography>
           <form onSubmit={handleFormSubmit}>
-            <Grid container spacing={2}>
+            <Grid container spacing={2} sx={{ mt: 2 }}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
                   variant="outlined"
                   label="Tên Tour"
-                  name="tripName"
+                  name="name"
                   value={formData.name}
                   onChange={handleInputChange}
                   required
@@ -370,8 +335,19 @@ export function TourView() {
                 <TextField
                   fullWidth
                   variant="outlined"
-                  label="Địa điểm"
-                  name="location"
+                  label="Mô Tả"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label="Điểm khởi hành"
+                  name="departureLocation"
                   value={formData.departureLocation}
                   onChange={handleInputChange}
                   required
@@ -381,20 +357,22 @@ export function TourView() {
                 <TextField
                   fullWidth
                   variant="outlined"
-                  label="Giá"
-                  name="price"
+                  label="Điểm đến"
+                  name="destinationLocation"
                   value={formData.destinationLocation}
                   onChange={handleInputChange}
                   required
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
                   variant="outlined"
-                  label="Ngày khởi hành"
-                  name="startDate"
-                  type="date"
+                  label="Số ngày đi"
+                  name="numberOfDays"
                   value={formData.numberOfDays}
                   onChange={handleInputChange}
                   required
@@ -403,23 +381,11 @@ export function TourView() {
                   }}
                 />
               </Grid>
-              {/* <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  label="Số ngày"
-                  name="days"
-                  type="number"
-                  value={formData.tourTypeDTO?.name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </Grid> */}
               <Grid item xs={12}>
                 <Select
                   fullWidth
                   name="tourType"
-                  value={formData.tourTypeDTO?.name}
+                  value={formData.tourTypeDTO?.id || ''}
                   onChange={handleSelectChange}
                   displayEmpty
                   required
@@ -427,10 +393,14 @@ export function TourView() {
                   <MenuItem value="">
                     <em>Chọn loại tour</em>
                   </MenuItem>
-                  <MenuItem value="Nội địa">Nội địa</MenuItem>
-                  <MenuItem value="Nước ngoài">Nước ngoài</MenuItem>
+                  {tourTypeData.map((type) => (
+                    <MenuItem key={type.id} value={type.id}>
+                      {type.name}
+                    </MenuItem>
+                  ))}
                 </Select>
               </Grid>
+
               <Grid item xs={12}>
                 <input
                   type="file"

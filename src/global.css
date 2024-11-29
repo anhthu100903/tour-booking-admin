@@ -55,5 +55,5 @@ input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
 }
 .badge-base {
-  display: none;
+  display: none !important;
 }

@@ -13,17 +13,17 @@ const CanvasJSChart = CanvasJSReact.CanvasJSChart;
 
 // Mock data
 const mockPosts = [
-  { id: 1, title: "Tin tức 1", date: "2024-01-01" },
-  { id: 2, title: "Tin tức 2", date: "2024-01-02" },
-  { id: 3, title: "Tin tức 3", date: "2024-01-03" },
-  { id: 4, title: "Tin tức 4", date: "2024-01-04" },
-  { id: 5, title: "Tin tức 5", date: "2024-01-05" },
+  { id: 1, title: "Phan Thị Anh Thư", date: "2024-01-01" },
+  { id: 2, title: "H20", date: "2024-01-02" },
+  { id: 3, title: "Anh Thư", date: "2024-01-03" },
+  { id: 4, title: "Nguyễn Văn A", date: "2024-01-04" },
+  { id: 5, title: "Nguyễn THị B", date: "2024-01-05" },
 ];
 
 const mockTimeline = [
-  { id: 1, title: "Booking 1", date: "2024-01-01" },
-  { id: 2, title: "Booking 2", date: "2024-01-02" },
-  { id: 3, title: "Booking 3", date: "2024-01-03" },
+  { id: 1, title: "Tour Leo Núi Khám Phá - Fansipan", date: "2024-12-30" },
+  { id: 2, title: "Tour Du Thuyền Khám Phá - Vịnh Hạ Long", date: "2024-12-30" },
+  { id: 3, title: "Tour Thể Thao Mạo Hiểm - Ninh Thuận", date: "2024-12-29" },
 ];
 
 export function OverviewAnalyticsView() {
@@ -40,25 +40,25 @@ export function OverviewAnalyticsView() {
     data: [{
       type: "column",
       dataPoints: [
-        { label: "Jan", y: 714000 },
-        { label: "Feb", y: 800000 },
-        { label: "Mar", y: 500000 },
-        { label: "Apr", y: 600000 },
-        { label: "May", y: 800000 },
-        { label: "Jun", y: 900000 },
-        { label: "Jul", y: 700000 },
-        { label: "Aug", y: 800000 }
+        { label: "Jan", y: 171400000 },
+        { label: "Feb", y: 180000000 },
+        { label: "Mar", y: 150000000 },
+        { label: "Apr", y: 160000000 },
+        { label: "May", y: 180000000 },
+        { label: "Jun", y: 190000000 },
+        { label: "Jul", y: 170000000 },
+        { label: "Aug", y: 180000000 }
       ]
     }]
   };
 
   // Dữ liệu cho biểu đồ phân bổ tour
   const tourData = [
-    { label: "Tour 1", y: 30 },
-    { label: "Tour 2", y: 20 },
-    { label: "Tour 3", y: 25 },
-    { label: "Tour 4", y: 15 },
-    { label: "Tour 5", y: 10 },
+    { label: "Tour Khám Phá - Hà Nội", y: 30 },
+    { label: "Tour Mạo Hiểm - Sapa", y: 20 },
+    { label: "Tour Di Sản - Huế", y: 25 },
+    { label: "Tour Nghỉ Dưỡng - Đà Nẵng", y: 15 },
+    { label: "Tour Khám Phá Lịch Sử - Hội An", y: 10 },
   ];
 
   const tourChartOptions = {
@@ -138,7 +138,7 @@ export function OverviewAnalyticsView() {
         </Grid>
 
         <Grid xs={12} md={6} lg={8}>
-          <AnalyticsNews title="Tin tức mới" list={mockPosts} />
+          <AnalyticsNews title="Khách hàng đã đặt tour gần đây" list={mockPosts} />
         </Grid>
 
         <Grid xs={12} md={6} lg={4}>
