@@ -7,7 +7,7 @@ import CanvasJSReact from '@canvasjs/react-charts'; // Import từ package bên 
 import { AnalyticsNews } from '../analytics-news'; // Imports nội bộ
 import { AnalyticsOrderTimeline } from '../analytics-order-timeline';
 import { AnalyticsWidgetSummary } from '../analytics-widget-summary';
-import { chartBookType } from 'src/service/chartService';
+import { chartBookType, chartDoanhThu } from 'src/service/chartService';
 import { getToken } from 'src/service/localStorage';
 
 const CanvasJS = CanvasJSReact.CanvasJS;
@@ -30,62 +30,72 @@ const mockTimeline = [
 
 export function OverviewAnalyticsView() {
   // Dữ liệu cho biểu đồ doanh thu
-  const revenueChartOptions = {
-    animationEnabled: true,
-    theme: "light2",
-    title: {
-      text: "Doanh thu hàng tháng"
-    },
-    axisY: {
-      title: "Doanh thu (VND)"
-    },
-    data: [{
-      type: "column",
-      dataPoints: [
-        { label: "Jan", y: 171400000 },
-        { label: "Feb", y: 180000000 },
-        { label: "Mar", y: 150000000 },
-        { label: "Apr", y: 160000000 },
-        { label: "May", y: 180000000 },
-        { label: "Jun", y: 190000000 },
-        { label: "Jul", y: 170000000 },
-        { label: "Aug", y: 180000000 }
-      ]
-    }]
-  };
+  
 
 
   const [typeTourBook, setTypeTourBook] = useState<any[]>([]);  // Đảm bảo state là mảng trống ban đầu
+  const [doanhThu, setDoanhThu] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);  // Để quản lý trạng thái loading
 
   const token = getToken();  // Lấy token
 
+  
+  const fetchBookType = async () => {
+    setLoading(true);  // Bắt đầu tải dữ liệu
+    try {
+      const result = await chartBookType(token);
+      console.log(result);  // Kiểm tra xem kết quả trả về có đúng không
+
+      if (result) {
+        // Chuyển đổi dữ liệu từ API thành dạng phù hợp cho biểu đồ
+        const formattedData = result.map((item: any) => ({
+          label: item[0],  // Tên tour
+          y: item[1]      // Số lượng booking
+        }));
+        setTypeTourBook(formattedData);
+      } else {
+        console.error("Dữ liệu trả về không hợp lệ");
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy dữ liệu tour:", error);
+    } finally {
+      setLoading(false);  // Kết thúc quá trình tải dữ liệu
+    }
+  };
+
+  const fetchDoanhThu = async () => {
+    setLoading(true);  // Bắt đầu tải dữ liệu
+    try {
+      const result = await chartDoanhThu(token);
+      console.log(result);  // Kiểm tra xem kết quả trả về có đúng không
+
+      if (result) {
+        // Chuyển đổi dữ liệu từ API thành dạng phù hợp cho biểu đồ
+        // Danh sách tên tháng
+        const months = [
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        ];
+
+        // Chuyển đổi dữ liệu thành định dạng yêu cầu
+        const formattedData = result.map(item => ({
+          label: months[item[0] - 1],  // Chuyển đổi tháng từ số thành tên
+          y: item[1]                   // Số lượng doanh thu
+        }));
+        console.log(formattedData)
+        setDoanhThu(formattedData);
+      } else {
+        console.error("Dữ liệu trả về không hợp lệ");
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy dữ liệu tour:", error);
+    } finally {
+      setLoading(false);  // Kết thúc quá trình tải dữ liệu
+    }
+  }
+
   useEffect(() => {
     if (!token) return;  // Không làm gì nếu token không có
-
-    const fetchBookType = async () => {
-      setLoading(true);  // Bắt đầu tải dữ liệu
-      try {
-        const result = await chartBookType(token);
-        console.log(result);  // Kiểm tra xem kết quả trả về có đúng không
-
-        if (result && result.data) {
-          // Chuyển đổi dữ liệu từ API thành dạng phù hợp cho biểu đồ
-          const formattedData = result.data.map((item: any) => ({
-            label: item[0],  // Tên tour
-            y: item[1]      // Số lượng booking
-          }));
-          setTypeTourBook(formattedData);
-        } else {
-          console.error("Dữ liệu trả về không hợp lệ");
-        }
-      } catch (error) {
-        console.error("Lỗi khi lấy dữ liệu tour:", error);
-      } finally {
-        setLoading(false);  // Kết thúc quá trình tải dữ liệu
-      }
-    };
-
+    fetchDoanhThu();
     fetchBookType();
   }, [token]);  // useEffect chỉ chạy khi token thay đổi
 
@@ -101,6 +111,31 @@ export function OverviewAnalyticsView() {
       showInLegend: true,
       toolTipContent: "<b>{label}</b>: {y}%",
       dataPoints: typeTourBook,
+    }]
+  };
+
+  const revenueChartOptions = {
+    animationEnabled: true,
+    theme: "light2",
+    title: {
+      text: "Doanh thu hàng tháng"
+    },
+    axisY: {
+      title: "Doanh thu (VND)"
+    },
+    data: [{
+      type: "column",
+      dataPoints: doanhThu
+      // [
+      //   { label: "Jan", y: 171400000 },
+      //   { label: "Feb", y: 180000000 },
+      //   { label: "Mar", y: 150000000 },
+      //   { label: "Apr", y: 160000000 },
+      //   { label: "May", y: 180000000 },
+      //   { label: "Jun", y: 190000000 },
+      //   { label: "Jul", y: 170000000 },
+      //   { label: "Aug", y: 180000000 }
+      // ]
     }]
   };
 
