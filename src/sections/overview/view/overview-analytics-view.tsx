@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Grid from '@mui/material/Unstable_Grid2';
 import Typography from '@mui/material/Typography';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -7,6 +7,8 @@ import CanvasJSReact from '@canvasjs/react-charts'; // Import từ package bên 
 import { AnalyticsNews } from '../analytics-news'; // Imports nội bộ
 import { AnalyticsOrderTimeline } from '../analytics-order-timeline';
 import { AnalyticsWidgetSummary } from '../analytics-widget-summary';
+import { chartBookType } from 'src/service/chartService';
+import { getToken } from 'src/service/localStorage';
 
 const CanvasJS = CanvasJSReact.CanvasJS;
 const CanvasJSChart = CanvasJSReact.CanvasJSChart;
@@ -52,33 +54,60 @@ export function OverviewAnalyticsView() {
     }]
   };
 
-  // Dữ liệu cho biểu đồ phân bổ tour
-  const tourData = [
-    { label: "Tour Khám Phá - Hà Nội", y: 30 },
-    { label: "Tour Mạo Hiểm - Sapa", y: 20 },
-    { label: "Tour Di Sản - Huế", y: 25 },
-    { label: "Tour Nghỉ Dưỡng - Đà Nẵng", y: 15 },
-    { label: "Tour Khám Phá Lịch Sử - Hội An", y: 10 },
-  ];
+
+  const [typeTourBook, setTypeTourBook] = useState<any[]>([]);  // Đảm bảo state là mảng trống ban đầu
+  const [loading, setLoading] = useState<boolean>(false);  // Để quản lý trạng thái loading
+
+  const token = getToken();  // Lấy token
+
+  useEffect(() => {
+    if (!token) return;  // Không làm gì nếu token không có
+
+    const fetchBookType = async () => {
+      setLoading(true);  // Bắt đầu tải dữ liệu
+      try {
+        const result = await chartBookType(token);
+        console.log(result);  // Kiểm tra xem kết quả trả về có đúng không
+
+        if (result && result.data) {
+          // Chuyển đổi dữ liệu từ API thành dạng phù hợp cho biểu đồ
+          const formattedData = result.data.map((item: any) => ({
+            label: item[0],  // Tên tour
+            y: item[1]      // Số lượng booking
+          }));
+          setTypeTourBook(formattedData);
+        } else {
+          console.error("Dữ liệu trả về không hợp lệ");
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu tour:", error);
+      } finally {
+        setLoading(false);  // Kết thúc quá trình tải dữ liệu
+      }
+    };
+
+    fetchBookType();
+  }, [token]);  // useEffect chỉ chạy khi token thay đổi
+
 
   const tourChartOptions = {
     animationEnabled: true,
     theme: "light2",
     title: {
-      text: "Phân bổ các loại tour"
+      text: "Thống kê mức độ phổ biến của các loại tour được đặt trong 3 tháng gần đây)."
     },
     data: [{
       type: "pie",
       showInLegend: true,
       toolTipContent: "<b>{label}</b>: {y}%",
-      dataPoints: tourData,
+      dataPoints: typeTourBook,
     }]
   };
 
   return (
     <DashboardContent maxWidth="xl">
       <Typography variant="h4" sx={{ mb: { xs: 3, md: 5 } }}>
-        Hi, Welcome back 👋
+        Xin chào, Mừng bạn đã trở lại 👋
       </Typography>
 
       <Grid container spacing={3}>
