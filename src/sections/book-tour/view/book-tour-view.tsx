@@ -278,6 +278,11 @@ export function BookTourView() {
     item.customerName.toLowerCase().includes(filterName.toLowerCase())
   );
 
+
+  const handleFormSubmit = (() => {
+    console.log(formData)
+  })
+
   // Hiển thị loading hoặc lỗi nếu có
   if (loading) {
     return <div>Loading...</div>;
@@ -378,8 +383,8 @@ export function BookTourView() {
           <Typography variant="h6" mb={3}>
             {formData.id ? 'Edit Booking Tour' : 'New Booking Tour'}
           </Typography>
-          <form >
-          {/* onSubmit={handleFormSubmit} */}
+          <form onSubmit={handleFormSubmit}>
+          
             <TextField
               fullWidth
               label="Tên khách hàng"
@@ -481,10 +486,10 @@ export function BookTourView() {
             </Select>
             <Box mt={3} display="flex" justifyContent="flex-end" gap={2}>
               <Button onClick={() => setOpenForm(false)} color="inherit">
-                Cancel
+                Hủy
               </Button>
               <Button type="submit" variant="contained">
-                Save
+                Lưu
               </Button>
             </Box>
           </form>
