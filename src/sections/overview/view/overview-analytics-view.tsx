@@ -8,7 +8,7 @@ import { AnalyticsNews } from '../analytics-news'; // Imports nội bộ
 import { AnalyticsOrderTimeline } from '../analytics-order-timeline';
 import { AnalyticsWidgetSummary } from '../analytics-widget-summary';
 import { chartBookType, chartDoanhThu } from 'src/service/chartService';
-import { getToken } from 'src/service/localStorage';
+import { setToken, getToken } from 'src/service/localStorage';
 
 const CanvasJS = CanvasJSReact.CanvasJS;
 const CanvasJSChart = CanvasJSReact.CanvasJSChart;
@@ -39,7 +39,35 @@ export function OverviewAnalyticsView() {
 
   const token = getToken();  // Lấy token
 
+  useEffect(() => {
+    // Hàm lắng nghe message
+      console.log('hihi')
+    const handleMessage = (event) => {
+      // Kiểm tra origin để đảm bảo thông điệp đến từ localhost:3000
+      if (event.origin === 'http://localhost:3000') {
+        const { token, from } = event.data;  // Lấy token từ dữ liệu message
   
+        if (from === 'login' && token) {
+          console.log("Received token:", token);
+          // Xử lý token: Lưu vào localStorage, hoặc gửi đi xác thực
+          // localStorage.setItem('token', token);
+          setToken(token);  // Cập nhật state với token nhận được
+        }
+      } else {
+        console.error("Received message from untrusted origin:", event.origin);
+      }
+    };
+  
+    // Thêm event listener
+    window.addEventListener('message', handleMessage);
+  
+    // Cleanup khi component unmount
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);  // Chỉ chạy khi component mount/unmount
+
+
   const fetchBookType = async () => {
     setLoading(true);  // Bắt đầu tải dữ liệu
     try {

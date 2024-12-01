@@ -274,9 +274,9 @@ export function TourView() {
                       <IconButton onClick={() => handleEdit(row.id)} color="primary">
                         <CustomEditIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDelete(row.id)} color="error">
+                      {/* <IconButton onClick={() => handleDelete(row.id)} color="error">
                         <CustomDeleteIcon />
-                      </IconButton>
+                      </IconButton> */}
                     </TableCell>
                   </TableRow>
                 ))
