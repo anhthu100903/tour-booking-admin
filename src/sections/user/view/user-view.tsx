@@ -28,21 +28,18 @@ import { Scrollbar } from 'src/components/scrollbar';
 import { TableNoData } from '../table-no-data';
 import { UserTableRow } from '../user-table-row';
 import { UserTableHead } from '../user-table-head';
-import { TableEmptyRows } from '../table-empty-rows';
 import { UserTableToolbar } from '../user-table-toolbar';
-import { emptyRows, applyFilter, getComparator } from '../utils';
+import { applyFilter} from '../utils';
 import { getAllUser, createUser, updateUser } from 'src/service/userService';
 import { getToken } from 'src/service/localStorage';
-
 import type { UserProps, UserResponse } from '../user-table-row';
 
 // ----------------------------------------------------------------------
 
 export function UserView() {
   const TOKEN = getToken();
-  const LIMIT = 20;
-  // const OFFSET = 0;
-  const table = useTable();
+  const LIMIT = 10;
+  // const table = useTable();
 
   const [filterName, setFilterName] = useState('');
   const [openDialog, setOpenDialog] = useState(false);  // State to handle dialog visibility
@@ -50,95 +47,71 @@ export function UserView() {
   const [filteredUsers, setFilteredUsers] = useState<UserProps[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại
-  const [hasMoreData, setHasMoreData] = useState(true); // Kiểm tra có dữ liệu hay không
   const [loadingMore, setLoadingMore] = useState(false); // Trạng thái đang tải thêm
   const [totalPage, setTotalPage] = useState(1);
-  
-  const [loading, setLoading] = useState(true); // Trạng thái loading
-  const [error, setError] = useState(false); // Trạng thái lỗi
-
   const [snackBarOpen, setSnackBarOpen] = useState(false);
   const [snackBarMessage, setSnackBarMessage] = useState("");
-  const handleCloseSnackBar = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-
+  const handleCloseSnackBar = (event: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === "clickaway") return;
     setSnackBarOpen(false);
   };
 
   const [newUser, setNewUser] = useState({
-    full_name: '',
-    user_name: '',
+    fullName: '',
+    username: '',
     address: '',
     password: '',
     email: '',
-    phone: '',
+    phoneNumber: '',
     gender: '',
     role: '',
-    isActive: true,
+    active: true,
   });
 
-  const [paginaton, setPagination] = useState({
-    page: 0,               // Trang hiện tại
-    rowsPerPage: 10,       // Số dòng mỗi trang
-    order: 'asc',          // Thứ tự sắp xếp
-    orderBy: 'full_name',  // Cột sắp xếp
-  });
-
+  //lấy dữ liệu các user với paginition
   const fetchAllUser = async (limit = LIMIT, page = currentPage) => {
     if (TOKEN === null) {
-      alert("Vui lòng đăng nhập");
+      setSnackBarMessage("Vui lòng đăng nhập");
+      setSnackBarOpen(true);
       return;
     }
-    if (loadingMore) return; // Tránh gọi lại API khi đang tải dữ liệu
+    if (loadingMore) return;
     setLoadingMore(true);
     try {
-      setLoading(true);
-  
-      // Đảm bảo getAllUser trả về đúng kiểu dữ liệu
-      const data = await getAllUser(limit, page, TOKEN); // Áp dụng kiểu UserResponse
-      console.log(data)
+      const data: UserResponse = await getAllUser(limit, page, TOKEN);
+      console.log("Tất cả người dùng với patination: ", data);
+
       if (data && data.users && Array.isArray(data.users)) {
         setTotalPage(data.totalPages);
         setCurrentPage(data.currentPage);
   
-        // Chuyển đổi dữ liệu người dùng
         const usersData = data.users.map((item: UserProps) => ({
           ...item,
-          user_name: item.username || '',  // Chuyển từ 'username'
-          full_name: item.fullName || '',  // Chuyển từ 'fullName'
+          user_name: item.username || '',
+          full_name: item.fullName || '',
           email: item.email || '',
-          phone: item.phoneNumber || '',  // Chuyển từ 'phoneNumber'
+          phone: item.phoneNumber || '',
           address: item.address || '',
-          role: item.role || '',          // Dữ liệu role từ API
-          gender: item.gender || '',      // Dữ liệu gender từ API
-          is_active: item.active,         // Dữ liệu active thành is_active
+          role: item.role || '',
+          gender: item.gender || '',
+          is_active: item.active,
         }));
   
-        setUsers(usersData); // Cập nhật state với dữ liệu người dùng đã xử lý
-        
-      setLoadingMore(false);
-        // console.log('UserData:', usersData);
-      } else {
-        console.error('API response does not contain valid users array.');
+        setUsers(usersData);
       }
     } catch (error) {
-      alert("Vui lòng lại sau");
-      setError(true);
-      console.error("Lỗi lấy dữ liệu: ", error);
+      setSnackBarMessage("Lỗi khi lấy dữ liệu");
+      setSnackBarOpen(true);
     } finally {
-      setLoading(false);
+      setLoadingMore(false);
     }
-  }
-  
+  };
   
   useEffect(() => {
     if (TOKEN) { // Kiểm tra thêm điều kiện loadingMore để tránh gọi lại khi đang tải
       fetchAllUser(LIMIT, currentPage);
     }
   }, [currentPage]); // Gọi lại khi `TOKEN` hoặc `currentPage` thay đổi
-  
   
   useEffect(() => {
     const dataFiltered: UserProps[] = applyFilter({
@@ -155,23 +128,16 @@ export function UserView() {
     setNewUser({ ...newUser, [name]: value });
   };
 
+  //thêm 1 user
   const handleSubmit = async () => {
+    if(!TOKEN) {
+      setSnackBarMessage("Vui lòng đăng nhập!");
+      setSnackBarOpen(true);
+      return;
+    }
     setOpenDialog(true);
     try{
-      setLoading(true);
-      const user = {
-        username: newUser.user_name,
-        fullName: newUser.full_name,
-        email: newUser.email,
-        phoneNumber: newUser.phone,
-        password: newUser.password,
-        address: newUser.address,
-        gender: newUser.gender,
-        role: newUser.role,
-        isActive: true,
-      }
-      const data = await createUser(user, TOKEN);
-      setLoading(false);
+      const data = await createUser(newUser, TOKEN);
       setSnackBarMessage("Thêm người dùng thành công!");
       setSnackBarOpen(true);
     }catch(error){
@@ -180,36 +146,30 @@ export function UserView() {
       setSnackBarOpen(true);
     }finally{
       setNewUser({
-        full_name: '',
-        user_name: '',
+        fullName: '',
+        username: '',
         address: '',
         password: '',
         email: '',
-        phone: '',
+        phoneNumber: '',
         gender: '',
         role: '',
-        isActive: true,
+        active: true,
       })
       setOpenDialog(false);  // Close dialog after submission
     }
   };
-
-  const handleUpdateUser = async (userUpdate) => {
-    setLoading(true);
+  
+  //cập nhật user
+  const handleUpdateUser = async (userUpdate: UserProps) => {
+    if(!TOKEN) {
+      setSnackBarMessage("Vui lòng đăng nhập!");
+      setSnackBarOpen(true);
+      return;
+    }
     try{
-      const user = {
-        username: userUpdate.user_name,
-        fullName: userUpdate.full_name,
-        email: userUpdate.email,
-        phoneNumber: userUpdate.phone,
-        address: userUpdate.address,
-        gender: userUpdate.gender,
-        role: userUpdate.role,
-        isActive: userUpdate.is_active,
-      }
-      console.log(userUpdate.is_active)
-      const data = await updateUser(TOKEN, user, user.username);
-      // console.log(user);
+      console.log(userUpdate.active)
+      const data = await updateUser(TOKEN, userUpdate, userUpdate.username);
       setSnackBarMessage("Cập nhật thành công");
       setSnackBarOpen(true);
       fetchAllUser();
@@ -217,24 +177,26 @@ export function UserView() {
       console.log(error);
       setSnackBarMessage("Cập nhật thất bại");
       setSnackBarOpen(true);
-    }finally{
-      setLoading(false);
     }
   }
 
   const handleOpenDialog = () => setOpenDialog(true);
-  const handleCloseDialog = () => setOpenDialog(false);
-  const handleAddUser = () => setOpenDialog(false);
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setNewUser({
+      fullName: '',
+      username: '',
+      address: '',
+      password: '',
+      email: '',
+      phoneNumber: '',
+      gender: '',
+      role: '',
+      active: true,
+    });
+  };
 
 
-   // Hiển thị loading hoặc lỗi nếu có
-   if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>Quay lại sau...</div>;
-  }
   return (
     <>
     <Snackbar
@@ -273,7 +235,6 @@ export function UserView() {
           filterName={filterName}
           onFilterName={(event: React.ChangeEvent<HTMLInputElement>) => {
             setFilterName(event.target.value);
-            table.onResetPage();
           }}
         />
 
@@ -281,10 +242,8 @@ export function UserView() {
           <TableContainer sx={{ overflow: 'unset' }}>
             <Table sx={{ minWidth: 800 }}>
               <UserTableHead
-                order={table.order}
-                orderBy={table.orderBy}
-                onSort={table.onSort}
                 headLabel={[
+                  { id: 'stt', label: 'STT'},
                   { id: 'full_name', label: 'Tên Đầy Đủ' },
                   { id: 'username', label: 'Tên Đăng Nhập' },
                   { id: 'email', label: 'Email' },
@@ -292,6 +251,7 @@ export function UserView() {
                   { id: 'role', label: 'Vai Trò' },
                   { id: 'gender', label: 'Giới Tính' },
                   { id: 'is_active', label: 'Trạng Thái' },
+                  { id: '', label: ''},
                 ]}
               />
               <TableBody>
@@ -299,29 +259,27 @@ export function UserView() {
                   filteredUsers.slice(
                     0,  // Cắt dữ liệu từ vị trí trang hiện tại
                     LIMIT // Đến vị trí của trang kế tiếp
-                  ).map((row) => (
+                  ).map((row, index) => (
                     <UserTableRow
                       key={row.id}
                       row={row}
-                      onSaveChanges={(updatedUser) => {
-                        // console.log(updatedUser);
+                      index={index + 1}  
+                      onSaveChanges={(updatedUser : UserProps) => {
                         handleUpdateUser(updatedUser);
-                      }}      
+                      }}        
                     />
                   ))
                 ) : (
                   <TableNoData searchQuery={filterName} />
                 )}
               </TableBody>
+              {notFound && <TableNoData searchQuery={filterName} />}
 
-
-
-                {/* {notFound && <TableNoData searchQuery={filterName} />}
-              </TableBody> */}
             </Table>
           </TableContainer>
         </Scrollbar>
 
+        {/* Phân trang */}
         <TablePagination
           component="div"
           page= {currentPage-1}  // Trang hiện tại
@@ -329,17 +287,11 @@ export function UserView() {
           rowsPerPage={LIMIT}  // Số dòng mỗi trang
           onPageChange={(_, newPage) => {
             setCurrentPage(newPage+1);  // Cập nhật trang hiện tại
-            // fetchAllUser(LIMIT, currentPage+1);  // Gọi lại API để lấy dữ liệu cho trang mới
           }}
           rowsPerPageOptions={[20]}  // Cố định số dòng mỗi trang
           onRowsPerPageChange={(event) => {
-            // Thực hiện khi thay đổi số dòng mỗi trang (có thể không cần thiết nếu bạn chỉ dùng 1 giá trị cố định)
-            // setRowsPerPage(parseInt(event.target.value, 10));
           }}
         />
-
-
-
       </Card>
 
       {/* Dialog for Adding New User */}
@@ -351,16 +303,16 @@ export function UserView() {
             label="Tên đầy đủ"
             fullWidth
             margin="normal"
-            name="full_name"
-            value={newUser.full_name}
+            name="fullName"
+            value={newUser.fullName}
             onChange={handleChange}
           />
           <TextField
             label="Tên đăng nhập"
             fullWidth
             margin="normal"
-            name="user_name"
-            value={newUser.user_name}
+            name="username"
+            value={newUser.username}
             onChange={handleChange}
           />
           <TextField
@@ -384,8 +336,8 @@ export function UserView() {
             label="Số điện thoại"
             fullWidth
             margin="normal"
-            name="phone"
-            value={newUser.phone}
+            name="phoneNumber"
+            value={newUser.phoneNumber}
             onChange={handleChange}
           />
           <TextField
@@ -446,7 +398,6 @@ export function useTable() {
   const [page, setPage] = useState(0);
   const [orderBy, setOrderBy] = useState('name');
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  // const [selected, setSelected] = useState<string[]>([]);
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
 
   const onSort = useCallback(
@@ -457,25 +408,6 @@ export function useTable() {
     },
     [order, orderBy]
   );
-
-  // const onSelectAllRows = useCallback((checked: boolean, newSelecteds: string[]) => {
-  //   if (checked) {
-  //     setSelected(newSelecteds);
-  //     return;
-  //   }
-  //   setSelected([]);
-  // }, []);
-
-  // const onSelectRow = useCallback(
-  //   (inputValue: string) => {
-  //     const newSelected = selected.includes(inputValue)
-  //       ? selected.filter((value) => value !== inputValue)
-  //       : [...selected, inputValue];
-
-  //     setSelected(newSelected);
-  //   },
-  //   [selected]
-  // );
 
   const onResetPage = useCallback(() => {
     setPage(0);
@@ -496,14 +428,7 @@ export function useTable() {
   return {
     page,
     order,
-    onSort,
     orderBy,
-    // selected,
     rowsPerPage,
-    // onSelectRow,
-    onResetPage,
-    onChangePage,
-    // onSelectAllRows,
-    onChangeRowsPerPage,
   };
 }

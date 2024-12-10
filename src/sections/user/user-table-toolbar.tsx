@@ -36,13 +36,6 @@ export function UserTableToolbar({filterName, onFilterName }: UserTableToolbarPr
           }
           sx={{ maxWidth: 320 }}
         />
-
-      
-        <Tooltip title="Filter list">
-          <IconButton>
-            <Iconify icon="ic:round-filter-list" />
-          </IconButton>
-        </Tooltip>
     </Toolbar>
   );
 }

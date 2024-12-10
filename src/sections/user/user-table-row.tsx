@@ -20,32 +20,33 @@ import { useState, useCallback } from 'react';
 
 export type UserProps = {
     id: string;
-    full_name: string;
-    user_name: string;
+    fullName: string;
+    username: string;
     address: string;
     email: string;
-    phone: number;
+    phoneNumber: string;
     gender: string;
     role: string;
-    is_active: boolean;
-    created_at: Date;
+    active: boolean;
+    createdAt: Date | null; 
 };
 
 export type UserResponse = {
   totalPages: number;
   currentPage: number;
+  totalElements: number;
   users: UserProps[];
-}
+};
+
 
 
 type UserTableRowProps = {
+  index: number,
   row: UserProps;
-  // selected: boolean;
-  // onSelectRow: () => void;
   onSaveChanges: (updatedRow: UserProps) => void; // Callback để lưu thay đổi
 };
 
-export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //selected, onSelectRow,
+export function UserTableRow({ index, row,  onSaveChanges }: UserTableRowProps) { //selected, onSelectRow,
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDetailDialog, setOpenDetailDialog] = useState(false); // State cho dialog xem chi tiết
@@ -79,13 +80,32 @@ export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //sel
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
-    // Kiểm tra nếu name là 'is_active', thì cập nhật state theo cách đặc biệt
-    setEditUser((prevState) => ({
-      ...prevState,
-      [name]: name === 'is_active' ? value === '1' : value, // Chuyển '1' thành true, '0' thành false cho 'is_active'
-    }));
-    console.log(name, value)
+  
+    setEditUser((prevUser) => {
+      if (name === 'gender' && (value === 'FEMALE' || value === 'MALE' || value === 'OTHER')) {
+        return {
+          ...prevUser,
+          gender: value,  // Cập nhật gender
+        };
+      }
+  
+      if (name === 'active') {
+        const isActive = value === '1';  // Kiểm tra và chuyển đổi value thành true/false
+        return {
+          ...prevUser,
+          active: isActive,  // Cập nhật active
+        };
+      }
+  
+      // Nếu name không phải là gender hoặc active, giữ nguyên giá trị cũ
+      return {
+        ...prevUser,
+        [name]: value, // Cập nhật giá trị bất kỳ theo name
+      };
+    });
   };
+  
+  
 
   const handleSave = () => {
     onSaveChanges(editUser);
@@ -95,25 +115,21 @@ export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //sel
   return (
     <>
       <TableRow hover tabIndex={-1}>
-        {/* <TableCell padding="checkbox">
-          <Checkbox disableRipple checked={selected} onChange={onSelectRow} />
-        </TableCell> */}
-
+        <TableCell>{index}</TableCell>
         <TableCell component="th" scope="row">
           <Box gap={2} display="flex" alignItems="center">
-            <Avatar alt={row.full_name} src="" />
-            {row.full_name}
+            <Avatar alt={row.fullName} src="" />
+            {row.fullName}
           </Box>
         </TableCell>
-        {/* <TableCell>{row.full_name}</TableCell> */}
-        <TableCell>{row.user_name}</TableCell>
+        <TableCell>{row.username}</TableCell>
         <TableCell>{row.email}</TableCell>
-        <TableCell>{row.phone}</TableCell>
+        <TableCell>{row.phoneNumber}</TableCell>
         <TableCell>{row.role}</TableCell>
         <TableCell>{row.gender === "MALE" ? "Nam" : "Nữ"}</TableCell>
 
         <TableCell align="center">
-          {row.is_active ? (
+          {row.active ? (
             <Iconify width={22} icon="solar:check-circle-bold" sx={{ color: 'success.main' }} />
           ) : (
             <Iconify width={22} icon="solar:close-circle-bold" sx={{ color: 'error.main' }} />
@@ -157,15 +173,11 @@ export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //sel
             <Iconify icon="solar:info-bold" />
             Xem Chi Tiết
           </MenuItem>
-          {/* <MenuItem onClick={handleClosePopover} sx={{ color: 'error.main' }}>
-            <Iconify icon="solar:trash-bin-trash-bold" />
-            Xóa
-          </MenuItem> */}
         </MenuList>
       </Popover>
 
       {/* Dialog chỉnh sửa thông tin */}
-      <Dialog open={openEditDialog} onClose={handleCloseEditDialog}>
+      <Dialog open={openEditDialog} onClose={handleCloseEditDialog} aria-hidden={!openEditDialog}>
         <DialogTitle>Chỉnh Sửa Người Dùng</DialogTitle>
         <DialogContent>
           <TextField
@@ -173,15 +185,15 @@ export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //sel
             fullWidth
             margin="normal"
             name="full_name"
-            value={editUser.full_name}
+            value={editUser.fullName}
             onChange={handleChange}
           />
           <TextField
             label="Tên đăng nhập"
             fullWidth
             margin="normal"
-            name="user_name"
-            value={editUser.user_name}
+            name="username"
+            value={editUser.username}
             onChange={handleChange}
           />
           <TextField
@@ -196,8 +208,8 @@ export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //sel
             label="Số điện thoại"
             fullWidth
             margin="normal"
-            name="phone"
-            value={editUser.phone}
+            name="phoneNumber"
+            value={editUser.phoneNumber}
             onChange={handleChange}
           />
           <TextField
@@ -207,6 +219,16 @@ export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //sel
             name="address"
             value={editUser.address}
             onChange={handleChange}
+          />
+          <TextField
+            label="Thời gian tạo"
+            fullWidth
+            margin="normal"
+            name="creatAt"
+            value={editUser.createdAt || ''}
+            InputProps={{
+              readOnly: true,  // Đảm bảo trường này không thể chỉnh sửa
+            }}
           />
           {/* Combobox for Gender */}
           <TextField
@@ -239,8 +261,8 @@ export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //sel
             select
             fullWidth
             margin="normal"
-            name="is_active"
-            value={editUser.is_active ? 1 : 0} // Chuyển đổi boolean thành chuỗi
+            name="active"
+            value={editUser.active ? "1" : "0"} // Chuyển đổi boolean thành chuỗi
             onChange={handleChange}
             SelectProps={{ native: true }}
           >
@@ -262,15 +284,15 @@ export function UserTableRow({ row,  onSaveChanges }: UserTableRowProps) { //sel
       <Dialog open={openDetailDialog} onClose={handleCloseDetailDialog}>
         <DialogTitle>Thông Tin Chi Tiết</DialogTitle>
         <DialogContent>
-          <p><strong>Tên Đầy Đủ:</strong> {row.full_name}</p>
-          <p><strong>Tên Đăng Nhập:</strong> {row.user_name}</p>
+          <p><strong>Tên Đầy Đủ:</strong> {row.fullName}</p>
+          <p><strong>Tên Đăng Nhập:</strong> {row.username}</p>
           <p><strong>Email:</strong> {row.email}</p>
-          <p><strong>Điện Thoại:</strong> {row.phone}</p>
+          <p><strong>Điện Thoại:</strong> {row.phoneNumber}</p>
           <p><strong>Địa Chỉ:</strong> {row.address}</p>
           <p><strong>Giới Tính:</strong> {row.gender}</p>
           <p><strong>Vai Trò:</strong> {row.role}</p>
-          <p><strong>Trạng Thái:</strong> {row.is_active ? 'Đang hoạt động' : 'Bị Khóa'}</p>
-          <p><strong>Ngày Tạo:</strong> {row.created_at ? row.created_at.toLocaleString() : 'N/A'}</p>
+          <p><strong>Trạng Thái:</strong> {row.active ? 'Đang hoạt động' : 'Bị Khóa'}</p>
+          <p><strong>Ngày Tạo:</strong> {row.createdAt ? row.createdAt.toLocaleString() : 'N/A'}</p>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDetailDialog} color="primary">
