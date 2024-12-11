@@ -48,3 +48,34 @@ export const getBookingInfo = async (
       throw error;
     }
   };
+
+  interface Payment {
+    amount: number;
+    paymentName: string;
+  }
+  
+  interface BookingRequest {
+    numberOfAdult: number;
+    numberOfChildren: number;
+    numberOfBaby: number;
+    departureDate: string;
+    tourId: number;
+    userId: number;
+    payment: Payment;
+  }
+  
+  // Hàm tạo booking
+  export const createBooking = async (bookingData: BookingRequest) => {
+    try {
+      const response = await axios.post(BASE_URL, bookingData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.data;  // Nếu tạo booking thành công, trả về dữ liệu phản hồi
+    } catch (error) {
+      console.error('Error:', error.response?.data || error.message);
+      throw error; // Ném lại lỗi để xử lý ở nơi gọi hàm
+    }
+  };
+  

@@ -25,7 +25,7 @@ import {
   DialogTitle,
 } from '@mui/material';
 import { getToken } from 'src/service/localStorage';
-import { getAllTours } from 'src/service/tourService';
+import { getAllToursWithPagination } from 'src/service/tourService';
 import { getAllTourTypes } from 'src/service/tourTypeService';
 
 type Tour = {
@@ -177,7 +177,7 @@ export function TourView() {
     }
     try {
       setLoading(true);
-      const tourData: Result = await getAllTours(limit, page, TOKEN);
+      const tourData: Result = await getAllToursWithPagination(limit, page, TOKEN);
       if (tourData.tours && Array.isArray(tourData.tours)) {
         setTotalElements(tourData.totalElements);
         setData(tourData.tours);

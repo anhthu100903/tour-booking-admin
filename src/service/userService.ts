@@ -114,9 +114,32 @@ const getAllUser = async (limit: number, offset: number, token: string): Promise
 };
 
 
+/**
+ * Lấy tất cả người dùng với phân trang.
+ * @param {number} limit - Số lượng người dùng mỗi lần lấy
+ * @param {number} offset - Vị trí bắt đầu của dữ liệu người dùng
+ * @param {string} token - Token xác thực người dùng
+ * @returns {Promise<UserResponse>} - Dữ liệu người dùng
+ */
+const getUserByUsername = async (username: string, token: string): Promise<Object> => {
+  try {
+    const response = await axios.get(`${BASE_URL}/username/${username}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      }
+    });
+
+    return response.data.result;
+  } catch (error: any) {
+    console.error("Error getting users:", error);
+    throw error;
+  }
+};
 
 export {
   createUser,
   updateUser,
-  getAllUser
+  getAllUser,
+  getUserByUsername
 };

@@ -18,7 +18,7 @@ import {
   TablePagination,
 
 } from '@mui/material';
-import { debounce } from 'lodash';
+import { debounce, update } from 'lodash';
 
 import MenuItem from '@mui/material/MenuItem';
 import { useEffect, useState, useRef} from 'react';
@@ -26,6 +26,8 @@ import { Scrollbar } from 'src/components/scrollbar';
 import { getToken } from 'src/service/localStorage';
 import { getBookingInfo } from 'src/service/bookTourService';
 import { BookingProps, AllPaymentResponse } from '../bookingInterface';
+import  BookingFormModal from '../modal-add-tour';
+import { updatePaymentStatus } from 'src/service/paymentService';
 
 const CustomDeleteIcon = () => (
   <SvgIcon>
@@ -52,7 +54,7 @@ export function BookTourView() {
   const [filterName, setFilterName] = useState('');
   const [filteredData, setFilteredData] = useState<BookingProps[]>([]); 
   const [openForm, setOpenForm] = useState(false);
-  const [formData, setFormData] = useState<BookingProps>({
+  const resetForm = {
     id: -1,
     numberOfAdult: 0,
     numberOfChildren: 0,
@@ -74,7 +76,8 @@ export function BookTourView() {
       bookTourId: -1,
       active: false,
     },
-  });
+  }
+  const [formData, setFormData] = useState<BookingProps>(resetForm);
   
 
   const fetchBookings = async (page = PAGE, pageSize = PAGESIZE) => {
@@ -84,7 +87,6 @@ export function BookTourView() {
     try {
       if(!TOKEN) return;
       // Gọi API với TOKEN
-      console.log("page", page)
       const data: AllPaymentResponse = await getBookingInfo(page, pageSize, TOKEN);
       
       // Nếu dữ liệu không hợp lệ hoặc rỗng, không xử lý
@@ -100,14 +102,22 @@ export function BookTourView() {
       console.log("Các tour đã đặt với paginitation: ", data);
 
       setBookings((prevBookings) => {
-        // Kiểm tra dữ liệu mới và chỉ thêm nếu không trùng
+        // Cập nhật các booking mới hoặc đã thay đổi
+        const updatedBookings = prevBookings.map((prevBooking) => {
+          // Tìm booking mới với cùng ID
+          const newBooking = data.bookTour.find((newBooking) => newBooking.id === prevBooking.id);
+          return newBooking ? newBooking : prevBooking; // Nếu có thay đổi, thay thế, nếu không giữ nguyên
+        });
+  
+        // Lọc ra những booking chưa có trong danh sách hiện tại
         const newBookings = data.bookTour.filter(
           (newBooking) => !prevBookings.some((booking) => booking.id === newBooking.id)
         );
-        return [...prevBookings, ...newBookings];
+  
+        // Trả về danh sách đã cập nhật
+        return [...updatedBookings, ...newBookings];
       });
 
-      // setBookings((prevBookings) => [...prevBookings, ...data.bookTour]);  // Nối mảng cũ và mảng mới
     } catch (error) {
       console.log(error);
     }finally{
@@ -165,8 +175,25 @@ export function BookTourView() {
     console.log(formData)
   })
 
-  const handleSaveBookTour = (() => {
+  const handleSaveBookTour = (async () => {
+    console.log("cập nhật");
+    if(!TOKEN) return;
+    if(formData.id != -1 && formData.payment.id != -1){
+      console.log(formData.payment.active, TOKEN);
+      const result = await updatePaymentStatus(formData.payment.id, formData.payment.active, TOKEN);
+      if(result) {
+        alert("Cập nhật thành công");
+        fetchBookings(PAGE, PAGESIZE);
+        setOpenForm(false);
+        return;
+      }
+    }
+    alert("Cập nhật thất bại. Vui lòng thử lại");
+  });
 
+  const handleOpenForm = (() => {
+    setFormData(resetForm);
+    setOpenForm(true);
   })
 
   return (
@@ -179,7 +206,7 @@ export function BookTourView() {
         <Button
           variant="contained"
           color="primary"
-          onClick={() => setOpenForm(true)}
+          onClick={() => handleOpenForm()}
         >
           Thêm
         </Button>
@@ -248,165 +275,15 @@ export function BookTourView() {
         />
       </Card>
 
-      {/* Form Modal */}
-      <Modal open={openForm} onClose={() => setOpenForm(false)}>
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            bgcolor: 'background.paper',
-            boxShadow: 24,
-            p: 4,
-            borderRadius: 2,
-            width: '90%',
-            maxWidth: 500,
-            maxHeight: '80vh',
-            overflowY: 'auto',
-            zIndex: 1300,
-          }}
-        >
-          <Typography variant="h6" mb={3}>
-            {formData.id != -1 ? 'Edit Booking Tour' : 'New Booking Tour'}
-          </Typography>
-          <form onSubmit={handleFormSubmit}>
-            <TextField
-              fullWidth
-              label="Tên khách hàng"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-              InputProps={{
-                readOnly: formData.id != -1,  // Nếu có id của booking thì chỉ có thể xem
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Tên tour"
-              name="tourName"
-              value={formData.tourName}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-              InputProps={{
-                readOnly: formData.id != -1,  // Nếu có id của booking thì chỉ có thể xem
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Điểm đến"
-              name="tripName"
-              value={formData.destinitation}
-              onChange={handleInputChange}
-              margin="normal"
-              InputProps={{
-                readOnly: formData.id != -1,  // Nếu có id của booking thì chỉ có thể xem
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Ngày đặt tour"
-              name="createdAt"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={formData.createdAt}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-              InputProps={{
-                readOnly: formData.id != -1,  // Nếu có id của booking thì chỉ có thể xem
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Người lớn"
-              name="numberOfAdult"
-              type="number"
-              value={formData.numberOfAdult}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-              InputProps={{
-                readOnly: formData.id != -1,  // Nếu có id của booking thì chỉ có thể xem
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Trẻ em"
-              name="numberOfChildren"
-              type="number"
-              value={formData.numberOfChildren}
-              onChange={handleInputChange}
-              margin="normal"
-              InputProps={{
-                readOnly: formData.id != -1,  // Nếu có id của booking thì chỉ có thể xem
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Em bé"
-              name="numberOfBaby"
-              type="number"
-              value={formData.numberOfBaby}
-              onChange={handleInputChange}
-              margin="normal"
-              InputProps={{
-                readOnly: formData.id != -1,  // Nếu có id của booking thì chỉ có thể xem
-              }}
-            />
-            <TextField
-              fullWidth
-              label="Số tiền"
-              name="amount"
-              type="string"
-              value={formData.payment.amount}
-              onChange={handleInputChange}
-              margin="normal"
-              InputProps={{
-                readOnly: formData.id != -1,  // Nếu có id của booking thì chỉ có thể xem
-              }}
-            />
-            
-            <TextField
-              fullWidth
-              label="Phương thức thanh toán"
-              name="paymentName"
-              type="string"
-              value={formData.payment.paymentName}
-              onChange={handleInputChange}
-              margin="normal"
-              InputProps={{
-                readOnly: formData.id != -1,  // Nếu có id của booking thì chỉ có thể xem
-              }}
-            />
-            <Select
-              fullWidth
-              name="Trạng thái thanh toán"
-              value={formData.payment.active ? 'paid' : 'unpaid'} 
-              onChange={handleSelectChange}
-              displayEmpty
-              sx={{ mt: 2, mb: 2 }}
-            >
-              <MenuItem value="" disabled>
-                Chọn trạng thái thanh toán
-              </MenuItem>
-              <MenuItem value="paid">Đã thanh toán</MenuItem>
-              <MenuItem value="unpaid">Chưa thanh toán</MenuItem>
-            </Select>
-            <Box mt={3} display="flex" justifyContent="flex-end" gap={2}>
-              <Button onClick={() => setOpenForm(false)} color="inherit">
-                Hủy
-              </Button>
-              <Button type="submit" variant="contained" onClick={() => handleSaveBookTour()}>
-                Lưu
-              </Button>
-            </Box>
-          </form>
-        </Box>
-      </Modal>
+      <BookingFormModal
+        openForm={openForm}
+        setOpenForm={setOpenForm}
+        formData={formData}
+        handleInputChange={handleInputChange}
+        handleSelectChange={handleSelectChange}
+        handleFormSubmit={handleFormSubmit}
+        handleSaveBookTour={handleSaveBookTour}
+      />
     </Box>
     </>
   );
