@@ -78,7 +78,8 @@ export function UserView() {
     if (loadingMore) return;
     setLoadingMore(true);
     try {
-      const data: UserResponse = await getAllUser(limit, page, TOKEN);
+      // const data: UserResponse = await getAllUser(limit, page, TOKEN);
+      const data = (await getAllUser(limit, page, TOKEN)) as unknown as UserResponse;
       console.log("Tất cả người dùng với patination: ", data);
 
       if (data && data.users && Array.isArray(data.users)) {

@@ -39,7 +39,7 @@ const createUser = async (userData: object, token: string): Promise<object> => {
 /**
  * Cập nhật thông tin người dùng.
  * @param {string} token - Token xác thực người dùng
- * @param {number} id - ID của người dùng
+ * @param {number} username - ID của người dùng
  * @param {object} userData - Dữ liệu người dùng cần cập nhật
  * @returns {Promise<object>} - Kết quả cập nhật thông tin người dùng
  */

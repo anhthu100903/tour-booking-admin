@@ -2,7 +2,6 @@ import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
 import Popover from '@mui/material/Popover';
 import TableRow from '@mui/material/TableRow';
-import Checkbox from '@mui/material/Checkbox';
 import MenuList from '@mui/material/MenuList';
 import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
@@ -13,7 +12,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { useState, useCallback } from 'react';
 // ----------------------------------------------------------------------
