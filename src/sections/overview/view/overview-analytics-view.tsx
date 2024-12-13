@@ -9,7 +9,6 @@ import { AnalyticsOrderTimeline } from '../analytics-order-timeline';
 import { AnalyticsWidgetSummary } from '../analytics-widget-summary';
 import { chartBookType, chartDoanhThu } from 'src/service/chartService';
 import { setToken, getToken } from 'src/service/localStorage';
-
 const CanvasJS = CanvasJSReact.CanvasJS;
 const CanvasJSChart = CanvasJSReact.CanvasJSChart;
 
@@ -36,36 +35,25 @@ export function OverviewAnalyticsView() {
   const [typeTourBook, setTypeTourBook] = useState<any[]>([]);  // Đảm bảo state là mảng trống ban đầu
   const [doanhThu, setDoanhThu] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);  // Để quản lý trạng thái loading
-
+  const [tokenExist, setTokenExist] = useState<boolean>(false);
   const token = getToken();  // Lấy token
 
   useEffect(() => {
-    // Hàm lắng nghe message
-      console.log('hihi')
-    const handleMessage = (event) => {
-      // Kiểm tra origin để đảm bảo thông điệp đến từ localhost:3000
-      if (event.origin === 'http://localhost:3000') {
-        const { token, from } = event.data;  // Lấy token từ dữ liệu message
-  
-        if (from === 'login' && token) {
-          console.log("Received token:", token);
-          // Xử lý token: Lưu vào localStorage, hoặc gửi đi xác thực
-          // localStorage.setItem('token', token);
-          setToken(token);  // Cập nhật state với token nhận được
-        }
-      } else {
-        console.error("Received message from untrusted origin:", event.origin);
-      }
+    const getCookie = (name: string) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop()?.split(';').shift();
     };
+
+    const tokenFromCookie = getCookie('token');
+    if (tokenFromCookie) {
+      setToken(tokenFromCookie);
+      setTokenExist(true);
+    } else {
+      console.log('Không có token trong cookie');
+    }
+  }, []);
   
-    // Thêm event listener
-    window.addEventListener('message', handleMessage);
-  
-    // Cleanup khi component unmount
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, []);  // Chỉ chạy khi component mount/unmount
 
 
   const fetchBookType = async () => {
@@ -122,7 +110,7 @@ export function OverviewAnalyticsView() {
   }
 
   useEffect(() => {
-    if (!token) return;  // Không làm gì nếu token không có
+    if (!token ) return;  // Không làm gì nếu token không có
     fetchDoanhThu();
     fetchBookType();
   }, [token]);  // useEffect chỉ chạy khi token thay đổi

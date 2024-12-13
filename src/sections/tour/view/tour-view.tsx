@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -11,57 +11,20 @@ import {
   TableRow,
   Typography,
   TablePagination,
-  Modal,
-  Grid,
   TextField,
-  Select,
-  MenuItem,
   IconButton,
   SvgIcon,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
+  Popover,
+  MenuList
 } from '@mui/material';
+import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
+import { Iconify } from 'src/components/iconify';
 import { getToken } from 'src/service/localStorage';
-import { getAllToursWithPagination } from 'src/service/tourService';
+import { getAllToursWithPagination, createTour } from 'src/service/tourService';
+import { createDeparture } from 'src/service/tourDepartureService';
 import { getAllTourTypes } from 'src/service/tourTypeService';
-
-type Tour = {
-  id: number | string;
-  name: string;
-  description: string;
-  destinationLocation: string;
-  departureLocation: string;
-  numberOfDays: string;
-  tourTypeDTO: TypeDTO | null;
-  images?: File[];
-};
-
-type tourType = {
-  id: number | string;
-  name: string;
-}
-
-type TypeDTO = {
-  id: string | number;
-  name: string;
-  active: boolean;
-}
-
-type Result = {
-  totalPages: number;
-  currentPage: number;
-  totalElements: number;
-  tours: Array<Tour>;
-}
-
-const CustomDeleteIcon = () => (
-  <SvgIcon>
-    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM16 4h-2V2H10v2H6v2h12V4z" />
-  </SvgIcon>
-);
+import { TourModal } from './modal-tour';
+import { Tour, TourCreate, TypeDTO, Result, tourRequest, PriceDetailRequest, TourDepartureRequest} from '../type'
 
 const CustomEditIcon = () => (
   <SvgIcon>
@@ -76,7 +39,7 @@ export function TourView() {
   const [filteredData, setFilterData] = useState<Tour[]>([]);
   const [openForm, setOpenForm] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState<Tour>({
+  const [formData, setFormData] = useState<TourCreate>({
     id: 0,
     name: '',
     description: '',
@@ -84,47 +47,95 @@ export function TourView() {
     departureLocation: '',
     numberOfDays: '',
     tourTypeDTO: null,
-    images: [],
+    quantity: 0,
+    departureDate: '',
+    adultPrice: 0,
+    childrenPrice: 0,
+    babyPrice: 0,
+    extraFee: 0,
+    images: '',
   });
-  const [data, setData] = useState<Tour[]>([]);
-  const [tourTypeData, setTourTypeData] = useState<tourType[]>([]);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [tourData, setTourData] = useState<Tour[]>([]);
+  const [tourTypeData, setTourTypeData] = useState<TypeDTO[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false); // State cho dialog xem chi tiết
+  const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
+  const handleOpenPopover = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    setOpenPopover(event.currentTarget);
+  }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  const handleClosePopover = useCallback(() => {
+    setOpenPopover(null);
+  }, []);
+  
+  const handleOpenEditDialog = () => {
+    setOpenEditDialog(true);
+    handleClosePopover();
   };
 
-  const handleSelectChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
-    const { value } = e.target;
-    const selectedType = tourTypeData.find(type => type.id === value);
-    setFormData(prevState => ({
-      ...prevState,
-      tourTypeDTO: selectedType || null, // Cập nhật với đối tượng tourTypeDTO
-    }));
+  const handleCloseEditDialog = () => {
+    setOpenEditDialog(false);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFormData({ ...formData, images: Array.from(e.target.files) });
+  const handleOpenDetailDialog = () => {
+    setOpenDetailDialog(true);
+    handleClosePopover();
+  };
+
+  const handleCloseDetailDialog = () => {
+    setOpenDetailDialog(false);
+  };
+  const addTour = ( async() => {
+    if(!TOKEN) return;
+    if(!formData.tourTypeDTO?.id) {
+      alert("Vui lòng điền đủ thông tin");
+      return;
     }
-  };
-
+    try {
+      const tour: tourRequest = {
+        name: formData.name,
+        description: formData.description,
+        destinationLocation: formData.destinationLocation,
+        departureLocation: formData.departureLocation,
+        numberOfDays: formData.numberOfDays,
+        tourTypeId: formData.tourTypeDTO.id,
+        images: formData.images,
+        active: true,
+      };
+      const tourResult = await createTour(TOKEN, tour);
+      if (tourResult.id) {
+        const price: PriceDetailRequest = {
+          adultPrice: formData.adultPrice,
+          childrenPrice: formData.childrenPrice,
+          babyPrice: formData.childrenPrice,
+          extraFee: formData.extraFee,
+          active: true,
+        };
+  
+        const departure: TourDepartureRequest = {
+          departureDate: formData.departureDate,
+          quantity: formData.quantity,
+          available: formData.quantity,
+          tourID: tourResult.id,
+          active: true,
+          priceDetail: price,
+        };
+        console.log(departure)
+        const departureResult = await createDeparture(TOKEN, departure);
+        console.log(departureResult)
+        alert("Thêm thành công");
+      }
+    } catch (error) {
+      console.error("Error adding tour or departure:", error);
+      // Display error message or notification
+      alert("Có lỗi xảy ra, vui lòng thử lại.");
+    }
+  })
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.id !== 0) {
-      setData(prevData =>
-        prevData.map(item => (item.id === formData.id ? { ...formData } : item))
-      );
-    } else {
-      setData(prevData => [
-        ...prevData,
-        { ...formData, id: prevData.length + 1 },
-      ]);
-    }
+    addTour();
     setOpenForm(false);
     resetForm();
   };
@@ -138,32 +149,22 @@ export function TourView() {
       departureLocation: '',
       numberOfDays: '',
       tourTypeDTO: null,
-      images: [],
+      images: '',
+      quantity: 0,
+      departureDate: '',
+      adultPrice: 0,
+      childrenPrice: 0,
+      babyPrice: 0,
+      extraFee: 0,
     });
   };
 
   const handleEdit = (id: number | string) => {
-    const editTour = data.find(item => item.id === id);
+    const editTour = tourData.find(item => item.id === id);
     if (editTour) {
-      setFormData(editTour);
+      // setFormData(editTour);
       setOpenForm(true);
     }
-  };
-
-  const handleDelete = (id: number | string) => {
-    setOpenDeleteDialog(true);
-    setDeleteId(id);
-  };
-
-  const confirmDelete = () => {
-    setData(prevData => prevData.filter(item => item.id !== deleteId));
-    setOpenDeleteDialog(false);
-    setDeleteId(null);
-  };
-
-  const cancelDelete = () => {
-    setOpenDeleteDialog(false);
-    setDeleteId(null);
   };
 
   const handlePageChange = (event: unknown, newPage: number) => {
@@ -180,7 +181,7 @@ export function TourView() {
       const tourData: Result = await getAllToursWithPagination(limit, page, TOKEN);
       if (tourData.tours && Array.isArray(tourData.tours)) {
         setTotalElements(tourData.totalElements);
-        setData(tourData.tours);
+        setTourData(tourData.tours);
       }
     } catch (error) {
       console.log(error);
@@ -196,7 +197,11 @@ export function TourView() {
     }
 
     try {
-      const tourTypeResult: tourType[] = await getAllTourTypes(TOKEN);
+      const tourTypeResult = await getAllTourTypes(TOKEN);
+      if (!Array.isArray(tourTypeResult)) {
+        console.error("Expected an array, but got:", tourTypeResult);
+        return;
+      }
       setTourTypeData(tourTypeResult);
     } catch (error) {
       console.log(error);
@@ -209,15 +214,12 @@ export function TourView() {
   }, [currentPage, TOKEN]);
 
   useEffect(() => {
-    const filteredTour = data.filter(item =>
+    const filteredTour = tourData.filter(item =>
       item.name && item.name.toLowerCase().includes(filterName.toLowerCase())
     );
     setFilterData(filteredTour);
-  }, [filterName, data]);
+  }, [filterName, tourData]);
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <Box p={4}>
@@ -271,14 +273,16 @@ export function TourView() {
                     <TableCell>{row.numberOfDays}</TableCell>
                     <TableCell>{row.tourTypeDTO?.name || 'Không xác định'}</TableCell>
                     <TableCell>
-                      <IconButton onClick={() => handleEdit(row.id)} color="primary">
+                      {/* <IconButton onClick={() => handleEdit(row.id)} color="primary">
                         <CustomEditIcon />
-                      </IconButton>
-                      {/* <IconButton onClick={() => handleDelete(row.id)} color="error">
-                        <CustomDeleteIcon />
                       </IconButton> */}
+                      
+                      <IconButton onClick={handleOpenPopover}>
+                        <Iconify icon="eva:more-vertical-fill" />
+                      </IconButton>
                     </TableCell>
                   </TableRow>
+                  
                 ))
               ) : (
                 <TableRow>
@@ -288,6 +292,47 @@ export function TourView() {
                 </TableRow>
               )}
             </TableBody>
+            <Popover
+              open={!!openPopover}
+              anchorEl={openPopover}
+              onClose={handleClosePopover}
+              anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              <MenuList
+                disablePadding
+                sx={{
+                  p: 0.5,
+                  gap: 0.5,
+                  width: 200,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  [`& .${menuItemClasses.root}`]: {
+                    px: 1,
+                    gap: 2,
+                    borderRadius: 0.75,
+                    [`&.${menuItemClasses.selected}`]: { bgcolor: 'action.selected' },
+                  },
+                }}
+              >
+                <MenuItem onClick={handleOpenEditDialog}>
+                  Chỉnh Sửa
+                </MenuItem>
+                
+                <MenuItem onClick={handleOpenEditDialog}>
+                  Thêm ảnh
+                </MenuItem>
+                <MenuItem onClick={handleOpenEditDialog}>
+                  Thêm chương trình tour
+                </MenuItem>
+                <MenuItem onClick={handleOpenEditDialog}>
+                  Thêm ngày khởi hành
+                </MenuItem>
+                <MenuItem onClick={handleOpenDetailDialog}>
+                  Xem Chi Tiết
+                </MenuItem>
+              </MenuList>
+            </Popover>
           </Table>
         </TableContainer>
 
@@ -301,145 +346,14 @@ export function TourView() {
         />
       </Card>
 
-      {/* Modal Form */}
-      <Modal open={openForm} onClose={() => setOpenForm(false)}>
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            bgcolor: 'background.paper',
-            boxShadow: 24,
-            p: 4,
-            borderRadius: 2,
-            width: '90%',
-            maxWidth: 500,
-          }}
-        >
-          <Typography variant="h5">{formData.id ? 'Chỉnh sửa Tour' : 'Tạo mới Tour'}</Typography>
-          <form onSubmit={handleFormSubmit}>
-            <Grid container spacing={2} sx={{ mt: 2 }}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  label="Tên Tour"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  label="Mô Tả"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  label="Điểm khởi hành"
-                  name="departureLocation"
-                  value={formData.departureLocation}
-                  onChange={handleInputChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  label="Điểm đến"
-                  name="destinationLocation"
-                  value={formData.destinationLocation}
-                  onChange={handleInputChange}
-                  required
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  label="Số ngày đi"
-                  name="numberOfDays"
-                  value={formData.numberOfDays}
-                  onChange={handleInputChange}
-                  required
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Select
-                  fullWidth
-                  name="tourType"
-                  value={formData.tourTypeDTO?.id || ''}
-                  onChange={handleSelectChange}
-                  displayEmpty
-                  required
-                >
-                  <MenuItem value="">
-                    <em>Chọn loại tour</em>
-                  </MenuItem>
-                  {tourTypeData.map((type) => (
-                    <MenuItem key={type.id} value={type.id}>
-                      {type.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </Grid>
-
-              <Grid item xs={12}>
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  multiple
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                >
-                  {formData.id ? 'Cập nhật Tour' : 'Tạo mới Tour'}
-                </Button>
-              </Grid>
-            </Grid>
-          </form>
-        </Box>
-      </Modal>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={openDeleteDialog} onClose={cancelDelete}>
-        <DialogTitle>Xác nhận xóa</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Bạn có chắc chắn muốn xóa tour này không?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelDelete} color="primary">
-            Hủy
-          </Button>
-          <Button onClick={confirmDelete} color="secondary">
-            Xóa
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <TourModal
+        open={openForm}
+        onClose={() => setOpenForm(false)}
+        onSubmit={handleFormSubmit}
+        formData={formData}
+        setFormData={setFormData}
+        tourTypeData={tourTypeData}
+      />
     </Box>
   );
 }
