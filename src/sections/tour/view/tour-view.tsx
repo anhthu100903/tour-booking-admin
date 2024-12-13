@@ -24,6 +24,9 @@ import { getAllToursWithPagination, createTour } from 'src/service/tourService';
 import { createDeparture } from 'src/service/tourDepartureService';
 import { getAllTourTypes } from 'src/service/tourTypeService';
 import { TourModal } from './modal-tour';
+import { AddProgramModal } from './modal-add-program';
+import { AddImageModal } from '../modal-add-image';
+import { AddDepartureModal } from './modal-add-departure';
 import { Tour, TourCreate, TypeDTO, Result, tourRequest, PriceDetailRequest, TourDepartureRequest} from '../type'
 
 const CustomEditIcon = () => (
@@ -60,6 +63,9 @@ export function TourView() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [openAddProgramDialog, setOpenAddProgramDialog] = useState(false);
+  const [openAddDepartureDialog, setOpenAddDepartureDialog] = useState(false);
+  const [openAddImageDialog, setOpenAddImageDialog] = useState(false);
   const [openDetailDialog, setOpenDetailDialog] = useState(false); // State cho dialog xem chi tiết
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
   const handleOpenPopover = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
@@ -77,6 +83,20 @@ export function TourView() {
 
   const handleCloseEditDialog = () => {
     setOpenEditDialog(false);
+  };
+
+  const handleOpenAddImageDialog = () => {
+    setOpenAddImageDialog(true);
+    handleClosePopover();
+  };
+
+  const handleOpenAddProgramDialog = () => {
+    setOpenAddProgramDialog(true);
+    handleClosePopover();
+  };
+  const handleOpenAddDepartureDialog = () => {
+    setOpenAddDepartureDialog(true);
+    handleClosePopover();
   };
 
   const handleOpenDetailDialog = () => {
@@ -222,7 +242,7 @@ export function TourView() {
 
 
   return (
-    <Box p={4}>
+    <Box p={4} mb={5}>
       <Box display="flex" alignItems="center" mb={5}>
         <Typography variant="h4" flexGrow={1}>
           Tours
@@ -319,13 +339,13 @@ export function TourView() {
                   Chỉnh Sửa
                 </MenuItem>
                 
-                <MenuItem onClick={handleOpenEditDialog}>
+                <MenuItem onClick={handleOpenAddImageDialog}>
                   Thêm ảnh
                 </MenuItem>
-                <MenuItem onClick={handleOpenEditDialog}>
+                <MenuItem onClick={handleOpenAddProgramDialog}>
                   Thêm chương trình tour
                 </MenuItem>
-                <MenuItem onClick={handleOpenEditDialog}>
+                <MenuItem onClick={handleOpenAddDepartureDialog}>
                   Thêm ngày khởi hành
                 </MenuItem>
                 <MenuItem onClick={handleOpenDetailDialog}>
@@ -353,6 +373,19 @@ export function TourView() {
         formData={formData}
         setFormData={setFormData}
         tourTypeData={tourTypeData}
+      />
+      <AddProgramModal
+        open={openAddProgramDialog}
+        onClose={() => setOpenAddProgramDialog(false)}
+      />
+      
+      <AddImageModal
+        open={openAddImageDialog}
+        onClose={() => setOpenAddImageDialog(false)}
+      />
+      <AddDepartureModal
+        open={openAddDepartureDialog}
+        onClose={() => setOpenAddDepartureDialog(false)}
       />
     </Box>
   );

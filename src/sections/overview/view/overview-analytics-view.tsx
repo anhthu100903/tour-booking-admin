@@ -142,16 +142,6 @@ export function OverviewAnalyticsView() {
     data: [{
       type: "column",
       dataPoints: doanhThu
-      // [
-      //   { label: "Jan", y: 171400000 },
-      //   { label: "Feb", y: 180000000 },
-      //   { label: "Mar", y: 150000000 },
-      //   { label: "Apr", y: 160000000 },
-      //   { label: "May", y: 180000000 },
-      //   { label: "Jun", y: 190000000 },
-      //   { label: "Jul", y: 170000000 },
-      //   { label: "Aug", y: 180000000 }
-      // ]
     }]
   };
 
@@ -162,68 +152,6 @@ export function OverviewAnalyticsView() {
       </Typography>
 
       <Grid container spacing={3}>
-        <Grid xs={12} sm={6} md={3}>
-          <AnalyticsWidgetSummary
-            title="Doanh thu hàng tháng"
-            percent={2.6}
-            total={714000}
-            icon={<img alt="icon" src="/assets/icons/glass/ic-glass-bag.svg" />}
-            chart={{
-              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-              series: [22, 8, 35, 50, 82, 84, 77, 12],
-            }}
-          />
-        </Grid>
-
-        <Grid xs={12} sm={6} md={3}>
-          <AnalyticsWidgetSummary
-            title="Khách hàng mới hàng tháng"
-            percent={-0.1}
-            total={1352831}
-            color="secondary"
-            icon={<img alt="icon" src="/assets/icons/glass/ic-glass-users.svg" />}
-            chart={{
-              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-              series: [56, 47, 40, 62, 73, 30, 23, 54],
-            }}
-          />
-        </Grid>
-
-        <Grid xs={12} sm={6} md={3}>
-          <AnalyticsWidgetSummary
-            title="Tour hàng tháng"
-            percent={2.8}
-            total={1723315}
-            color="warning"
-            icon={<img alt="icon" src="/assets/icons/glass/ic-glass-message.svg" />}
-            chart={{
-              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-              series: [40, 70, 50, 28, 70, 75, 7, 64],
-            }}
-          />
-        </Grid>
-
-        <Grid xs={12} sm={6} md={3}>
-          <AnalyticsWidgetSummary
-            title="Booking tour hàng tháng"
-            percent={3.6}
-            total={234}
-            color="error"
-            icon={<img alt="icon" src="/assets/icons/glass/ic-glass-tour-booking.svg" />}
-            chart={{
-              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-              series: [56, 30, 23, 54, 47, 40, 62, 73],
-            }}
-          />
-        </Grid>
-
-        <Grid xs={12} md={6} lg={8}>
-          <AnalyticsNews title="Khách hàng đã đặt tour gần đây" list={mockPosts} />
-        </Grid>
-
-        <Grid xs={12} md={6} lg={4}>
-          <AnalyticsOrderTimeline title="Booking Tour gần đây" list={mockTimeline} />
-        </Grid>
 
         {/* Thêm biểu đồ doanh thu */}
         <Grid xs={12}>
@@ -233,6 +161,15 @@ export function OverviewAnalyticsView() {
         {/* Thêm biểu đồ phân bổ tour */}
         <Grid xs={12}>
           <CanvasJSChart options={tourChartOptions} />
+        </Grid>
+        
+
+        <Grid xs={12} md={6} lg={8}>
+          <AnalyticsNews title="Khách hàng đã đặt tour gần đây" list={mockPosts} />
+        </Grid>
+
+        <Grid xs={12} md={6} lg={4}>
+          <AnalyticsOrderTimeline title="Booking Tour gần đây" list={mockTimeline} />
         </Grid>
       </Grid>
     </DashboardContent>

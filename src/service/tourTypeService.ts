@@ -1,19 +1,13 @@
 import axios, { AxiosResponse } from 'axios';
-
+import { TypeDTO } from 'src/sections/tour/type';
 const BASE_URL = 'http://localhost:8080/tour/types';
 
 // Định nghĩa kiểu dữ liệu cho phản hồi API
-interface TourType {
-  // Thêm các trường trong response.data mà bạn cần xử lý ở đây
-  // Ví dụ:
-  // id: number;
-  // name: string;
-}
 
 interface ApiResponse {
   code: number;
   message: string;
-  result: TourType[];
+  result: TypeDTO[];
 }
 
 /**
@@ -21,7 +15,7 @@ interface ApiResponse {
  * @param {string} token - Token xác thực
  * @returns {Promise<TourType[]>} - Kết quả danh sách loại tour
  */
-const getAllTourTypes = async (token: string): Promise<TourType[]> => {
+const getAllTourTypes = async (token: string): Promise<TypeDTO[]> => {
   try {
     const response: AxiosResponse<ApiResponse> = await axios.get(`${BASE_URL}`, {
       headers: {
